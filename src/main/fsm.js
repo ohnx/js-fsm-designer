@@ -103,7 +103,10 @@ var movingObject = false;
 var originalClick;
 
 function drawUsing(c) {
-	c.clearRect(0, 0, canvas.width, canvas.height);
+	c.beginPath();
+	c.fillStyle = "white";
+	c.rect(0, 0, canvas.width, canvas.height);
+	c.fill();
 	c.save();
 	c.translate(0.5, 0.5);
 
@@ -128,7 +131,7 @@ function drawUsing(c) {
 
 function draw() {
 	drawUsing(canvas.getContext('2d'));
-	saveBackup();
+	// saveBackup();
 }
 
 function selectObject(x, y) {
@@ -161,7 +164,7 @@ function snapNode(node) {
 
 window.onload = function() {
 	canvas = document.getElementById('canvas');
-	restoreBackup();
+	// restoreBackup();
 	draw();
 
 	canvas.onmousedown = function(e) {
@@ -373,7 +376,9 @@ function saveAsPNG() {
 	drawUsing(canvas.getContext('2d'));
 	selectedObject = oldSelectedObject;
 	var pngData = canvas.toDataURL('image/png');
-	document.location.href = pngData;
+	var pngLink = document.getElementById("pngLink");
+	pngLink.download = "image.png";
+	pngLink.href = pngData.replace(/^data:image\/[^;]/, 'data:application/octet-stream');
 }
 
 function saveAsSVG() {
