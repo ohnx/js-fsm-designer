@@ -131,7 +131,6 @@ function drawUsing(c) {
 
 function draw() {
 	drawUsing(canvas.getContext('2d'));
-	// saveBackup();
 }
 
 function selectObject(x, y) {
@@ -164,7 +163,6 @@ function snapNode(node) {
 
 window.onload = function() {
 	canvas = document.getElementById('canvas');
-	// restoreBackup();
 	draw();
 
 	canvas.onmousedown = function(e) {
@@ -401,4 +399,27 @@ function saveAsLaTeX() {
 	selectedObject = oldSelectedObject;
 	var texData = exporter.toLaTeX();
 	output(texData);
+}
+
+function saveAsJson() {
+	var jsonLink = document.getElementById("jsonLink");
+	jsonLink.download = "exportedToJson.json";
+	jsonLink.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(exportJson());
+}
+
+function importJsonFile() {
+	document.getElementById("importFileInput").click();
+}
+
+function importFileChange(e) {
+	var file = e.target.files[0]
+	var fileReader = new FileReader();
+
+	fileReader.onload = function(fileLoadedEvent) {
+		importJson(fileLoadedEvent.target.result);
+		draw();
+		e.target.value = "";
+	}
+
+	fileReader.readAsText(file, "UTF-8");
 }

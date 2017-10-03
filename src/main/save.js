@@ -1,10 +1,12 @@
-function restoreBackup() {
-	if(!localStorage || !JSON) {
+function importJson(jsonString) {
+	if(!JSON) {
 		return;
 	}
 
 	try {
-		var backup = JSON.parse(localStorage['fsm']);
+		var backup = JSON.parse(jsonString);
+		nodes = [];
+		links = [];
 
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
@@ -37,12 +39,12 @@ function restoreBackup() {
 			}
 		}
 	} catch(e) {
-		localStorage['fsm'] = '';
+		alert("Can't import that file!");
 	}
 }
 
-function saveBackup() {
-	if(!localStorage || !JSON) {
+function exportJson() {
+	if(!JSON) {
 		return;
 	}
 
@@ -94,5 +96,5 @@ function saveBackup() {
 		}
 	}
 
-	localStorage['fsm'] = JSON.stringify(backup);
+	return JSON.stringify(backup);
 }

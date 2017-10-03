@@ -592,13 +592,15 @@ function fixed(number, digits) {
 	return number.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-function restoreBackup() {
-	if(!localStorage || !JSON) {
+function importJson(jsonString) {
+	if(!JSON) {
 		return;
 	}
 
 	try {
-		var backup = JSON.parse(localStorage['fsm']);
+		var backup = JSON.parse(jsonString);
+		nodes = [];
+		links = [];
 
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
@@ -631,12 +633,12 @@ function restoreBackup() {
 			}
 		}
 	} catch(e) {
-		localStorage['fsm'] = '';
+		alert("Can't import that file!");
 	}
 }
 
-function saveBackup() {
-	if(!localStorage || !JSON) {
+function exportJson() {
+	if(!JSON) {
 		return;
 	}
 
@@ -688,7 +690,7 @@ function saveBackup() {
 		}
 	}
 
-	localStorage['fsm'] = JSON.stringify(backup);
+	return JSON.stringify(backup);
 }
 
 var greekLetterNames = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega' ];
@@ -824,7 +826,6 @@ function drawUsing(c) {
 
 function draw() {
 	drawUsing(canvas.getContext('2d'));
-	// saveBackup();
 }
 
 function selectObject(x, y) {
@@ -857,7 +858,6 @@ function snapNode(node) {
 
 window.onload = function() {
 	canvas = document.getElementById('canvas');
-	// restoreBackup();
 	draw();
 
 	canvas.onmousedown = function(e) {
@@ -1094,4 +1094,27 @@ function saveAsLaTeX() {
 	selectedObject = oldSelectedObject;
 	var texData = exporter.toLaTeX();
 	output(texData);
+}
+
+function saveAsJson() {
+	var jsonLink = document.getElementById("jsonLink");
+	jsonLink.download = "exportedToJson.json";
+	jsonLink.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(exportJson());
+}
+
+function importJsonFile() {
+	document.getElementById("importFileInput").click();
+}
+
+function importFileChange(e) {
+	var file = e.target.files[0]
+	var fileReader = new FileReader();
+
+	fileReader.onload = function(fileLoadedEvent) {
+		importJson(fileLoadedEvent.target.result);
+		draw();
+		e.target.value = "";
+	}
+
+	fileReader.readAsText(file, "UTF-8");
 }
