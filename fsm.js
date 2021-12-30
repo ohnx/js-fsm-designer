@@ -73,7 +73,7 @@ function canvasHasFocus() {
 }
 
 function drawText(c, text, x, y, angleOrNull, isSelected) {
-	c.font = '20px "Times New Roman", serif';
+	c.font = '20px "Helvetica Neue", "Times New Roman", serif';
 	var width = c.measureText(text).width;
 
 	// center the text
@@ -131,13 +131,17 @@ var movingObject = false;
 var movingAllObjects = false;
 var originalClick;
 
+var currentScale = 1; // scaling factor to zoom in/out
+var translateX = 0.5, translateY = 0.5; // translation factors
+
 function drawUsing(c) {
 	c.beginPath();
 	c.fillStyle = "white";
 	c.rect(0, 0, canvas.width, canvas.height);
 	c.fill();
 	c.save();
-	c.translate(0.5, 0.5);
+	c.translate(translateX, translateY);
+	c.scale(currentScale, currentScale);
 
 	for(var i = 0; i < nodes.length; i++) {
 		c.lineWidth = 1;
@@ -302,11 +306,9 @@ window.onload = function() {
 		}
 
 		else if(movingAllObjects) {
-			for(var i = 0; i < nodes.length; i++) {
-				nodes[i].x += mouse.x - prevMouse.x;
-				nodes[i].y += mouse.y - prevMouse.y;
-			}
-			
+			translateX += mouse.x - prevMouse.x;
+			translateY += mouse.y - prevMouse.y;
+
 			draw();
 		}
 	};
