@@ -3,7 +3,6 @@ function Node(x, y) {
 	this.y = y;
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
-	this.isAcceptState = false;
 	this.text = '';
 }
 
@@ -25,13 +24,6 @@ Node.prototype.draw = function(c) {
 
 	// draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
-
-	// draw a double circle for an accept state
-	if(this.isAcceptState) {
-		c.beginPath();
-		c.arc(this.x, this.y, nodeRadius - 6, 0, 2 * Math.PI, false);
-		c.stroke();
-	}
 };
 
 Node.prototype.closestPointOnCircle = function(x, y) {

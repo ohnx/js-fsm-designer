@@ -228,9 +228,6 @@ window.onload = function() {
 			nodes.push(selectedObject);
 			resetCaret();
 			draw();
-		} else if(selectedObject instanceof Node) {
-			selectedObject.isAcceptState = !selectedObject.isAcceptState;
-			draw();
 		}
 
 		caretIndex = selectedObject.text.length;
