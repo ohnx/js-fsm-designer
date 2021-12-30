@@ -74,7 +74,7 @@ function ExportAsSVG() {
 	};
 	this.measureText = function(text) {
 		var c = canvas.getContext('2d');
-		c.font = '20px "Times New Romain", serif';
+		c.font = '20px "Times New Roman", serif';
 		return c.measureText(text);
 	};
 	this.fillText = function(text, x, y) {

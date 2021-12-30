@@ -17,3 +17,10 @@ function circleFromThreePoints(x1, y1, x2, y2, x3, y3) {
 function fixed(number, digits) {
 	return number.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '');
 }
+
+function transformPoint(matrix, p) {
+	return {
+		x: matrix.a * p.x + matrix.c * p.y + matrix.e,
+		y: matrix.b * p.x + matrix.d * p.y + matrix.f,
+	};
+}

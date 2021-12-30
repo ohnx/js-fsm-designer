@@ -6,7 +6,7 @@ function Link(a, b) {
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
-	this.perpendicularPart = 0; // pixels from line between nodeA and nodeB
+	this.perpendicularPart = 30; // pixels from line between nodeA and nodeB
 }
 
 Link.prototype.getAnchorPoint = function() {

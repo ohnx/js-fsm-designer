@@ -134,6 +134,9 @@ var originalClick;
 var currentScale = 1; // scaling factor to zoom in/out
 var translateX = 0.5, translateY = 0.5; // translation factors
 
+// line widths
+var nodeLineWidth = 1, linkLineWidth = 1;
+
 function drawUsing(c) {
 	c.beginPath();
 	c.fillStyle = "white";
@@ -144,17 +147,17 @@ function drawUsing(c) {
 	c.scale(currentScale, currentScale);
 
 	for(var i = 0; i < nodes.length; i++) {
-		c.lineWidth = 1;
+		c.lineWidth = nodeLineWidth;
 		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? 'blue' : 'black';
 		nodes[i].draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
-		c.lineWidth = 1;
+		c.lineWidth = linkLineWidth;
 		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? 'blue' : 'black';
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
-		c.lineWidth = 1;
+		c.lineWidth = linkLineWidth;
 		c.fillStyle = c.strokeStyle = 'black';
 		currentLink.draw(c);
 	}
@@ -164,6 +167,21 @@ function drawUsing(c) {
 
 function draw() {
 	drawUsing(canvas.getContext('2d'));
+}
+
+// convert mouse coords in canvas to the proper x,y coords in canvas
+function mouseToCanvasCoords(mouseCoords) {
+	let x = mouseCoords.x, y = mouseCoords.y;
+
+	let transformed = {
+		x: x - translateX + 0.5,
+		y: y - translateY + 0.5
+	};
+
+	transformed.x /= currentScale;
+	transformed.y /= currentScale;
+
+	return transformed;
 }
 
 function selectObject(x, y) {
@@ -215,25 +233,26 @@ window.onload = function() {
 
 	canvas.onmousedown = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
-		selectedObject = selectObject(mouse.x, mouse.y);
+		var canvasCoords = mouseToCanvasCoords(mouse);
+		selectedObject = selectObject(canvasCoords.x, canvasCoords.y);
 		movingObject = false;
-		originalClick = mouse;
+		originalClick = canvasCoords;
 
 		if(selectedObject != null) {
 			if(shift && selectedObject instanceof Node) {
-				currentLink = new SelfLink(selectedObject, mouse);
+				currentLink = new SelfLink(selectedObject, canvasCoords);
 			} else {
 				movingObject = true;
 				deltaMouseX = deltaMouseY = 0;
 				if(selectedObject.setMouseStart) {
-					selectedObject.setMouseStart(mouse.x, mouse.y);
+					selectedObject.setMouseStart(canvasCoords.x, canvasCoords.y);
 				}
 			}
 
 			caretIndex = selectedObject.text.length;
 			resetCaret();
 		} else if(shift) {
-			currentLink = new TemporaryLink(mouse, mouse);
+			currentLink = new TemporaryLink(canvasCoords, canvasCoords);
 		} else {
 			movingAllObjects = true;
 			canvas.style.cursor = "all-scroll";
@@ -253,10 +272,11 @@ window.onload = function() {
 
 	canvas.ondblclick = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
-		selectedObject = selectObject(mouse.x, mouse.y);
+		var canvasCoords = mouseToCanvasCoords(mouse);
+		selectedObject = selectObject(canvasCoords.x, canvasCoords.y);
 
 		if(selectedObject == null) {
-			selectedObject = new Node(mouse.x, mouse.y);
+			selectedObject = new Node(canvasCoords.x, canvasCoords.y);
 			nodes.push(selectedObject);
 			resetCaret();
 			draw();
@@ -272,9 +292,10 @@ window.onload = function() {
 	canvas.onmousemove = function(e) {
 		prevMouse = mouse;
 		mouse = crossBrowserRelativeMousePos(e);
+		var canvasCoords = mouseToCanvasCoords(mouse);
 
 		if(currentLink != null) {
-			var targetNode = selectObject(mouse.x, mouse.y);
+			var targetNode = selectObject(canvasCoords.x, canvasCoords.y);
 			if(!(targetNode instanceof Node)) {
 				targetNode = null;
 			}
@@ -283,22 +304,22 @@ window.onload = function() {
 				if(targetNode != null) {
 					currentLink = new StartLink(targetNode, originalClick);
 				} else {
-					currentLink = new TemporaryLink(originalClick, mouse);
+					currentLink = new TemporaryLink(originalClick, canvasCoords);
 				}
 			} else {
 				if(targetNode == selectedObject) {
-					currentLink = new SelfLink(selectedObject, mouse);
+					currentLink = new SelfLink(selectedObject, canvasCoords);
 				} else if(targetNode != null) {
 					currentLink = new Link(selectedObject, targetNode);
 				} else {
-					currentLink = new TemporaryLink(selectedObject.closestPointOnCircle(mouse.x, mouse.y), mouse);
+					currentLink = new TemporaryLink(selectedObject.closestPointOnCircle(canvasCoords.x, canvasCoords.y), canvasCoords);
 				}
 			}
 			draw();
 		}
 
 		else if(movingObject) {
-			selectedObject.setAnchorPoint(mouse.x, mouse.y);
+			selectedObject.setAnchorPoint(canvasCoords.x, canvasCoords.y);
 			if(selectedObject instanceof Node) {
 				snapNode(selectedObject);
 			}
@@ -337,6 +358,9 @@ window.onload = function() {
 		e.preventDefault();
 		// only care about y scroll
 		currentScale += e.deltaY * -0.01;
+		if (currentScale <= 0.005) {
+			currentScale = 0.005;
+		}
 		draw();
 	};
 };
@@ -583,6 +607,10 @@ function setCanvasSize() {
 
 function updateStates() {
 	var newState = exportJson();
+	let format = {"nodes":[{"x":612,"y":91,"text":"[RESET]"},{"x":188,"y":209,"text":"state2"},{"x":366,"y":315,"text":"state3"},{"x":343,"y":131,"text":"state1"}],"links":[{"type":"Link","nodeA":1,"nodeB":3,"text":"~(a || b) /","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":3,"nodeB":1,"text":"a / outA","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":1,"nodeB":2,"text":"a || b / outB = a","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"SelfLink","node":2,"text":"a /","anchorAngle":0},{"type":"Link","nodeA":2,"nodeB":3,"text":"~a / outC","lineAngleAdjust":0,"parallelPart":0.4722408026755854,"perpendicularPart":33.11727413531866},{"type":"Link","nodeA":0,"nodeB":3,"text":"[RESET]/","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30}],"canvasWidth":800,"canvasHeight":600};
+
+	if (states.length == 0)
+		importJson(JSON.stringify(format));
 
 	if(newState !== states[statesIndex]) {
 		statesIndex++;
@@ -742,6 +770,13 @@ function circleFromThreePoints(x1, y1, x2, y2, x3, y3) {
 
 function fixed(number, digits) {
 	return number.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function transformPoint(matrix, p) {
+	return {
+		x: matrix.a * p.x + matrix.c * p.y + matrix.e,
+		y: matrix.b * p.x + matrix.d * p.y + matrix.f,
+	};
 }
 
 // draw using this instead of a canvas and call toLaTeX() afterward
@@ -926,7 +961,7 @@ function ExportAsSVG() {
 	};
 	this.measureText = function(text) {
 		var c = canvas.getContext('2d');
-		c.font = '20px "Times New Romain", serif';
+		c.font = '20px "Times New Roman", serif';
 		return c.measureText(text);
 	};
 	this.fillText = function(text, x, y) {
@@ -1023,7 +1058,7 @@ function Link(a, b) {
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
-	this.perpendicularPart = 0; // pixels from line between nodeA and nodeB
+	this.perpendicularPart = 30; // pixels from line between nodeA and nodeB
 }
 
 Link.prototype.getAnchorPoint = function() {
