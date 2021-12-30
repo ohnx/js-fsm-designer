@@ -211,7 +211,7 @@ window.onload = function() {
 		originalClick = canvasCoords;
 
 		if(selectedObject != null) {
-			if(shift && selectedObject instanceof Node) {
+			if(e.shiftKey && selectedObject instanceof Node) {
 				currentLink = new SelfLink(selectedObject, canvasCoords);
 			} else {
 				movingObject = true;
@@ -223,7 +223,7 @@ window.onload = function() {
 
 			caretIndex = selectedObject.text.length;
 			resetCaret();
-		} else if(shift) {
+		} else if(e.shiftKey) {
 			currentLink = new TemporaryLink(canvasCoords, canvasCoords);
 		} else {
 			movingAllObjects = true;
@@ -337,14 +337,10 @@ window.onload = function() {
 	};
 };
 
-var shift = false;
-
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
 
-	if(key == 16) {
-		shift = true;
-	} else if(!canvasHasFocus()) {
+	if(!canvasHasFocus()) {
 		// don't read keystrokes when other things have focus
 		return true;
 	} else if(key == 8) { // backspace key
@@ -399,10 +395,6 @@ document.onkeydown = function(e) {
 
 document.onkeyup = function(e) {
 	var key = crossBrowserKey(e);
-
-	if(key === 16) {
-		shift = false;
-	}
 
 	// Left arrow key
 	if(key === 37){
