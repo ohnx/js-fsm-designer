@@ -73,7 +73,7 @@ function canvasHasFocus() {
 }
 
 function drawText(c, text, x, y, angleOrNull, isSelected) {
-	c.font = '20px "Helvetica Neue", "Times New Roman", serif';
+	c.font = '20px "Helvetica Neue", "Arial", sans-serif';
 	var width = c.measureText(text).width;
 
 	// center the text
@@ -117,7 +117,7 @@ function resetCaret() {
 var canvas;
 var canvasWidthInput;
 var canvasHeightInput;
-var nodeRadius = 30;
+var nodeRadius = 50;
 var nodes = [];
 var links = [];
 var states = [];
