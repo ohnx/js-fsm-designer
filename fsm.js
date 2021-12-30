@@ -365,6 +365,19 @@ window.onload = function() {
 	};
 };
 
+function deleteItem(obj) {
+	for(var i = 0; i < nodes.length; i++) {
+		if(nodes[i] == obj) {
+			nodes.splice(i--, 1);
+		}
+	}
+	for(var i = 0; i < links.length; i++) {
+		if(links[i] == obj || links[i].node == obj || links[i].nodeA == obj || links[i].nodeB == obj) {
+			links.splice(i--, 1);
+		}
+	}
+}
+
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
 
@@ -394,16 +407,7 @@ document.onkeydown = function(e) {
 		return false;
 	} else if(key == 46) { // delete key
 		if(selectedObject != null) {
-			for(var i = 0; i < nodes.length; i++) {
-				if(nodes[i] == selectedObject) {
-					nodes.splice(i--, 1);
-				}
-			}
-			for(var i = 0; i < links.length; i++) {
-				if(links[i] == selectedObject || links[i].node == selectedObject || links[i].nodeA == selectedObject || links[i].nodeB == selectedObject) {
-					links.splice(i--, 1);
-				}
-			}
+			deleteItem(selectedObject);
 			selectedObject = null;
 			draw();
 		}
@@ -411,11 +415,18 @@ document.onkeydown = function(e) {
 
 	// undo on macOS
 	if (e.metaKey) {
-		if (key == 90) {// ctrl z
+		if (key == 90) {// command z
 			getPreviousState();
 			e.preventDefault();
-		} else if(key == 89) {// ctrl y
+		} else if(key == 89) {// command y
 			getNextState();
+			e.preventDefault();
+		} else if(key == 68) {// command d
+			if(selectedObject != null) {
+				deleteItem(selectedObject);
+				selectedObject = null;
+				draw();
+			}
 			e.preventDefault();
 		}
 	}
