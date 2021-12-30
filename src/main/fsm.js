@@ -383,6 +383,9 @@ document.onkeydown = function(e) {
 			selectedObject = null;
 			draw();
 		}
+	} else if(key == 13) { // return key
+		selectedObject = null;
+		draw();
 	}
 
 	// undo on macOS

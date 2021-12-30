@@ -110,6 +110,10 @@ Link.prototype.draw = function(c) {
 
 Link.prototype.containsPoint = function(x, y) {
 	var stuff = this.getEndPointsAndCircle();
+	return this.lineContainsPoint(stuff, x, y);
+};
+
+Link.prototype.lineContainsPoint = function (stuff, x, y) {
 	if(stuff.hasCircle) {
 		var dx = x - stuff.circleX;
 		var dy = y - stuff.circleY;

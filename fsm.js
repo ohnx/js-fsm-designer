@@ -411,6 +411,9 @@ document.onkeydown = function(e) {
 			selectedObject = null;
 			draw();
 		}
+	} else if(key == 13) { // return key
+		selectedObject = null;
+		draw();
 	}
 
 	// undo on macOS
@@ -1165,6 +1168,10 @@ Link.prototype.draw = function(c) {
 
 Link.prototype.containsPoint = function(x, y) {
 	var stuff = this.getEndPointsAndCircle();
+	return this.lineContainsPoint(stuff, x, y);
+};
+
+Link.prototype.lineContainsPoint = function (stuff, x, y) {
 	if(stuff.hasCircle) {
 		var dx = x - stuff.circleX;
 		var dy = y - stuff.circleY;
