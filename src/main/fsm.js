@@ -350,6 +350,17 @@ document.onkeydown = function(e) {
 			draw();
 		}
 	}
+
+	// undo on macOS
+	if (e.metaKey) {
+		if (key == 90) {// ctrl z
+			getPreviousState();
+			e.preventDefault();
+		} else if(key == 89) {// ctrl y
+			getNextState();
+			e.preventDefault();
+		}
+	}
 };
 
 document.onkeyup = function(e) {
@@ -381,8 +392,8 @@ document.onkeyup = function(e) {
 		}
 	}
 
-	if(e.ctrlKey) {
-		if(key == 90) // ctrl z
+	if (e.ctrlKey) {
+		if (key == 90) // ctrl z
 			getPreviousState();
 		else if(key == 89) // ctrl y
 			getNextState();

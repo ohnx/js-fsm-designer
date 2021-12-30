@@ -378,6 +378,17 @@ document.onkeydown = function(e) {
 			draw();
 		}
 	}
+
+	// undo on macOS
+	if (e.metaKey) {
+		if (key == 90) {// ctrl z
+			getPreviousState();
+			e.preventDefault();
+		} else if(key == 89) {// ctrl y
+			getNextState();
+			e.preventDefault();
+		}
+	}
 };
 
 document.onkeyup = function(e) {
@@ -409,8 +420,8 @@ document.onkeyup = function(e) {
 		}
 	}
 
-	if(e.ctrlKey) {
-		if(key == 90) // ctrl z
+	if (e.ctrlKey) {
+		if (key == 90) // ctrl z
 			getPreviousState();
 		else if(key == 89) // ctrl y
 			getNextState();
@@ -1161,7 +1172,6 @@ function Node(x, y) {
 	this.y = y;
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
-	this.isAcceptState = false;
 	this.text = '';
 }
 
@@ -1183,13 +1193,6 @@ Node.prototype.draw = function(c) {
 
 	// draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
-
-	// draw a double circle for an accept state
-	if(this.isAcceptState) {
-		c.beginPath();
-		c.arc(this.x, this.y, nodeRadius - 6, 0, 2 * Math.PI, false);
-		c.stroke();
-	}
 };
 
 Node.prototype.closestPointOnCircle = function(x, y) {
