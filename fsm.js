@@ -331,7 +331,15 @@ window.onload = function() {
 
 		updateStates();
 	};
-}
+
+	// zoom in/out
+	canvas.onwheel = function (e) {
+		e.preventDefault();
+		// only care about y scroll
+		currentScale += e.deltaY * -0.01;
+		draw();
+	};
+};
 
 var shift = false;
 
