@@ -59,6 +59,7 @@ textarea {
 
   </style>
 	<script src="fsm.js"></script>
+	<script src="../js/bundle.js"></script>
 	<script>
 
 /*
@@ -106,7 +107,8 @@ if (typeof btoa == 'undefined') {
 			<a id="pngLink" onclick="saveAsPNG()" href="" >PNG</a> | 
 			<a href="javascript:saveAsSVG()">SVG</a> | 
 			<a href="javascript:saveAsLaTeX()">LaTeX</a> |
-			<a id="jsonLink" onclick="saveAsJson()" href="">JSON</a>
+			<a id="jsonLink" onclick="saveAsJson()" href="">JSON</a> |
+			<a id="verilogLink" onclick="saveAsVerilog()" href="">SystemVerilog (via highroller)</a>
 		</p>
 		<button type="button" onclick="importJsonFile()">Import JSON File</button>
 		<input id="importFileInput" hidden type="file" onchange="importFileChange(event)">

@@ -104,3 +104,119 @@ function exportJson() {
 
 	return JSON.stringify(backup);
 }
+
+function convert(obj, meta) {
+  let output = {};
+  output.version = 2;
+  output.meta = meta;
+  output.machine = {};
+  output.machine.nodes = obj.nodes.map((x, i) => {
+    return {
+      id: i,
+      name: x.text
+    };
+  });
+  output.machine.edges = obj.links.map((x, i) => {
+    let res = {};
+    if (x.type == 'StartLink') {
+      if (output.meta.reset) {
+        // TODO: send message to user that we are overwriting the reset node
+      }
+      output.meta.reset = x.node;
+      return;
+    } else if (x.type == 'Link') {
+      res.start = x.nodeA;
+      res.end = x.nodeB;
+    } else if (x.type == 'SelfLink') {
+      res.start = x.node;
+      res.end = x.node;
+    }
+
+    let condOut = x.text.split('/');
+    if (condOut.length != 2) {
+      // oops
+    }
+    res.condition = condOut[0].split(' ').join('');
+    let outputVars = condOut[1].split(' ').join('');
+    res.output = outputVars.length > 0 ? outputVars.split(',') : [];
+
+    return res;
+  }).filter(x => x);
+
+  return output;
+};
+
+let meta = {
+  name: "NFTB_fsm",
+  // reset state will be determined
+  signals: {
+    // signals (input/output) 
+    input: [
+      {
+        // input signals have a name and a width
+        name: "fifo_empty",
+        width: 1
+      },
+      {name: "free_outbound", width: 1}
+    ],
+    output: [
+      // output signals also have an extra parameter:
+      // for width = 1 signals, if they are inverted
+      // inverted == true if they are ACTIVE LOW
+      // inverted == false if they are ACTIVE HIGH
+      // for width > 1 signals, a "default" setting (if not specified, defaults to 0)
+      {name: "fifo_read", width: 1, inverted: false},
+      {name: "buf_en", width: 1, inverted: false},
+      {name: "sel", width: 2},
+      {name: "put_outbound", width: 1, inverted: false}
+    ]
+  }
+};
+
+
+// log levels go from 0 (debug) to 5 (bad)
+const TEST_OPTIONS = {
+  // options for outputType:
+  // file (have stuff like `default_nettype + module),
+  // module (input/output, etc.). Use name as module name
+  // code (just the FSM itself)
+  outputType: "file",
+  // clock and reset options are only used for file/module options
+  clock: {
+    // name of the clock signal
+    name: "clock",
+    // edge to care about (options are posedge or negedge)
+    edge: "posedge"
+  },
+  reset: {
+    // name of reset signal
+    name: "reset_n",
+    // edge to care about (options are posedge or negedge)
+    edge: "negedge"
+  },
+  // in case we need to remap
+  cstate: "cstate",
+  nstate: "nstate",
+  // style:
+  style: {
+    // indent by what (can put spaces/tabs/whatever in here)
+    indent: "  ",
+    // skip outputting the transition to same state
+    skipOutputTransitionToSameState: true,
+  },
+  // the logger to use
+  logger: function(level, message) {
+    console.log(`Log ${level}: ${message}`);
+  },
+};
+
+function exportVerilog() {
+	let fsmData = JSON.parse(exportJson());
+	return window.highroller.convert(convert(fsmData, meta), TEST_OPTIONS);
+}
+
+function saveAsVerilog() {
+	var verilogLink = document.getElementById('verilogLink');
+	verilogLink.download = 'exportedToVerilog.sv';
+	verilogLink.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(exportVerilog());
+}

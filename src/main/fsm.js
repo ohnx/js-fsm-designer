@@ -249,7 +249,7 @@ window.onload = function() {
 		if(selectedObject != null) {
 			if(e.shiftKey && selectedObject instanceof Node) {
 				currentLink = new SelfLink(selectedObject, canvasCoords);
-			} else {
+			} else if (!selectedObject.intersectedLabel) {
 				movingObject = true;
 				deltaMouseX = deltaMouseY = 0;
 				if(selectedObject.setMouseStart) {

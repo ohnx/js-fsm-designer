@@ -4,6 +4,7 @@ function StartLink(node, start) {
 	this.deltaY = 0;
 	this.text = '';
 	this.textBounds = null;
+	this.intersectedLabel = false;
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -59,6 +60,7 @@ StartLink.prototype.labelContainsPoint = function(stuff, x, y) {
 		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
 		if ((y >= this.textBounds.y - hitTargetPadding) &&
 			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			this.intersectedLabel = true;
 			return true;
 		}
 	}
@@ -66,6 +68,7 @@ StartLink.prototype.labelContainsPoint = function(stuff, x, y) {
 };
 
 StartLink.prototype.containsPoint = function(x, y) {
+	this.intersectedLabel = false;
 	var stuff = this.getEndPoints();
 	var dx = stuff.endX - stuff.startX;
 	var dy = stuff.endY - stuff.startY;

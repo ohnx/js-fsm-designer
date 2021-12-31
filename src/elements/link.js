@@ -4,6 +4,7 @@ function Link(a, b) {
 	this.text = '';
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
+	this.intersectedLabel = false;
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -76,6 +77,7 @@ Link.prototype.getEndPointsAndCircle = function() {
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
 	this.textBounds = null;
+	this.intersectedLabel = false;
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -121,6 +123,7 @@ Link.prototype.labelContainsPoint = function(stuff, x, y) {
 		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
 		if ((y >= this.textBounds.y - hitTargetPadding) &&
 			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			this.intersectedLabel = true;
 			return true;
 		}
 	}

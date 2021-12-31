@@ -4,6 +4,7 @@ function SelfLink(node, mouse) {
 	this.mouseOffsetAngle = 0;
 	this.text = '';
 	this.textBounds = null;
+	this.intersectedLabel = false;
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -71,6 +72,7 @@ SelfLink.prototype.labelContainsPoint = function(stuff, x, y) {
 		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
 		if ((y >= this.textBounds.y - hitTargetPadding) &&
 			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			this.intersectedLabel = true;
 			return true;
 		}
 	}
@@ -78,6 +80,7 @@ SelfLink.prototype.labelContainsPoint = function(stuff, x, y) {
 };
 
 SelfLink.prototype.containsPoint = function(x, y) {
+	this.intersectedLabel = false;
 	var stuff = this.getEndPointsAndCircle();
 	var dx = x - stuff.circleX;
 	var dy = y - stuff.circleY;
