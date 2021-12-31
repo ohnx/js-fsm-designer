@@ -3,6 +3,7 @@ function StartLink(node, start) {
 	this.deltaX = 0;
 	this.deltaY = 0;
 	this.text = '';
+	this.textBounds = null;
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -36,6 +37,7 @@ StartLink.prototype.getEndPoints = function() {
 
 StartLink.prototype.draw = function(c) {
 	var stuff = this.getEndPoints();
+	this.textBounds = null;
 
 	// draw the line
 	c.beginPath();
@@ -45,10 +47,22 @@ StartLink.prototype.draw = function(c) {
 
 	// draw the text at the end without the arrow
 	var textAngle = Math.atan2(stuff.startY - stuff.endY, stuff.startX - stuff.endX);
-	drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
+	this.textBounds = drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
 
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+};
+
+StartLink.prototype.labelContainsPoint = function(stuff, x, y) {
+	if (!this.textBounds) return;
+	if ((x >= this.textBounds.x - hitTargetPadding) &&
+		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
+		if ((y >= this.textBounds.y - hitTargetPadding) &&
+			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			return true;
+		}
+	}
+	return false;
 };
 
 StartLink.prototype.containsPoint = function(x, y) {
@@ -58,5 +72,6 @@ StartLink.prototype.containsPoint = function(x, y) {
 	var length = Math.sqrt(dx*dx + dy*dy);
 	var percent = (dx * (x - stuff.startX) + dy * (y - stuff.startY)) / (length * length);
 	var distance = (dx * (y - stuff.startY) - dy * (x - stuff.startX)) / length;
-	return (percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding);
+	return ((percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding)) ||
+			this.labelContainsPoint(stuff, x, y);
 };

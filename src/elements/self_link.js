@@ -3,6 +3,7 @@ function SelfLink(node, mouse) {
 	this.anchorAngle = 0;
 	this.mouseOffsetAngle = 0;
 	this.text = '';
+	this.textBounds = null;
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -49,6 +50,8 @@ SelfLink.prototype.getEndPointsAndCircle = function() {
 
 SelfLink.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	this.textBounds = null;
+
 	// draw arc
 	c.beginPath();
 	c.arc(stuff.circleX, stuff.circleY, stuff.circleRadius, stuff.startAngle, stuff.endAngle, false);
@@ -56,9 +59,21 @@ SelfLink.prototype.draw = function(c) {
 	// draw the text on the loop farthest from the node
 	var textX = stuff.circleX + stuff.circleRadius * Math.cos(this.anchorAngle);
 	var textY = stuff.circleY + stuff.circleRadius * Math.sin(this.anchorAngle);
-	drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
+	this.textBounds = drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+};
+
+SelfLink.prototype.labelContainsPoint = function(stuff, x, y) {
+	if (!this.textBounds) return;
+	if ((x >= this.textBounds.x - hitTargetPadding) &&
+		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
+		if ((y >= this.textBounds.y - hitTargetPadding) &&
+			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			return true;
+		}
+	}
+	return false;
 };
 
 SelfLink.prototype.containsPoint = function(x, y) {
@@ -66,5 +81,6 @@ SelfLink.prototype.containsPoint = function(x, y) {
 	var dx = x - stuff.circleX;
 	var dy = y - stuff.circleY;
 	var distance = Math.sqrt(dx*dx + dy*dy) - stuff.circleRadius;
-	return (Math.abs(distance) < hitTargetPadding);
+	return (Math.abs(distance) < hitTargetPadding) ||
+			this.labelContainsPoint(stuff, x, y);
 };

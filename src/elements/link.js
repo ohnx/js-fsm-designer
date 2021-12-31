@@ -3,6 +3,7 @@ function Link(a, b) {
 	this.nodeB = b;
 	this.text = '';
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
+	this.textBounds = null;
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -74,6 +75,7 @@ Link.prototype.getEndPointsAndCircle = function() {
 
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	this.textBounds = null;
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -99,21 +101,33 @@ Link.prototype.draw = function(c) {
 		var textAngle = (startAngle + endAngle) / 2 + stuff.isReversed * Math.PI;
 		var textX = stuff.circleX + stuff.circleRadius * Math.cos(textAngle);
 		var textY = stuff.circleY + stuff.circleRadius * Math.sin(textAngle);
-		drawText(c, this.text, textX, textY, textAngle, selectedObject == this);
+		this.textBounds = drawText(c, this.text, textX, textY, textAngle, selectedObject == this);
 	} else {
 		var textX = (stuff.startX + stuff.endX) / 2;
 		var textY = (stuff.startY + stuff.endY) / 2;
 		var textAngle = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY);
-		drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
+		this.textBounds = drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
 	}
 };
 
 Link.prototype.containsPoint = function(x, y) {
 	var stuff = this.getEndPointsAndCircle();
-	return this.lineContainsPoint(stuff, x, y);
+	return this.lineContainsPoint(stuff, x, y) || this.labelContainsPoint(stuff, x, y);
 };
 
-Link.prototype.lineContainsPoint = function (stuff, x, y) {
+Link.prototype.labelContainsPoint = function(stuff, x, y) {
+	if (!this.textBounds) return;
+	if ((x >= this.textBounds.x - hitTargetPadding) &&
+		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
+		if ((y >= this.textBounds.y - hitTargetPadding) &&
+			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
+			return true;
+		}
+	}
+	return false;
+};
+
+Link.prototype.lineContainsPoint = function(stuff, x, y) {
 	if(stuff.hasCircle) {
 		var dx = x - stuff.circleX;
 		var dy = y - stuff.circleY;

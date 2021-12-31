@@ -44,9 +44,16 @@ function canvasHasFocus() {
 	return (document.activeElement || document.body) == document.body;
 }
 
+let fontFamily = '"Helvetica Neue", "Arial", sans-serif';
+// in px
+let fontHeight = 20;
+
+// returns x/y/h/w bounding box
 function drawText(c, text, x, y, angleOrNull, isSelected) {
-	c.font = '20px "Helvetica Neue", "Arial", sans-serif';
-	var width = c.measureText(text).width;
+	c.font = `${fontHeight}px ${fontFamily}`;
+	var measure = c.measureText(text);
+	var width = measure.width;
+	var height = fontHeight;
 
 	// center the text
 	x -= width / 2;
@@ -74,6 +81,13 @@ function drawText(c, text, x, y, angleOrNull, isSelected) {
 		c.lineTo(x, y + 10);
 		c.stroke();
 	}
+
+	return {
+		x: x,
+		y: y + 6 - measure.actualBoundingBoxAscent, 
+		h: height + measure.actualBoundingBoxDescent,
+		w: width
+	};
 }
 
 var caretTimer;
