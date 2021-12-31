@@ -55,6 +55,26 @@ function drawText(c, text, x, y, angleOrNull, isSelected) {
 	var width = measure.width;
 	var height = fontHeight;
 
+	let lines = text.split('\n');
+
+	// TODO: multiline
+	for (var i = 0; i < lines.length; i++) {
+		return drawTextLine(c, lines[i], x, y + i*fontHeight, angleOrNull, isSelected);
+	}
+
+	return null;
+}
+
+function drawTextLine(c, text, x, y, angleOrNull, isSelected) {
+	c.font = `${fontHeight}px ${fontFamily}`;
+	var measure = c.measureText(text);
+	var width = measure.width;
+	var height = fontHeight;
+
+	// temporarily set line width to 1
+	var oldLineWidth = c.lineWidth;
+	c.lineWidth = 1;
+
 	// center the text
 	x -= width / 2;
 
@@ -81,6 +101,8 @@ function drawText(c, text, x, y, angleOrNull, isSelected) {
 		c.lineTo(x, y + 10);
 		c.stroke();
 	}
+
+	c.lineWidth = oldLineWidth;
 
 	return {
 		x: x,
@@ -398,8 +420,22 @@ document.onkeydown = function(e) {
 			draw();
 		}
 	} else if(key == 13) { // return key
-		selectedObject = null;
-		draw();
+		if ((selectedObject != null) && e.shiftKey) {
+			// create newline in the label instead of removing focus
+			selectedObject.text += "\n";
+			draw();
+		} else {
+			selectedObject = null;
+			draw();
+		}
+	} else if(key == 27) { // escape key
+		if (selectedObject && selectedObject.text != undefined) {
+			if (selectedObject.text.length == 0) {
+				// delete object - we cancelled creation
+				deleteItem(selectedObject);
+			}
+		}
+		e.preventDefault();
 	}
 
 	// undo on macOS

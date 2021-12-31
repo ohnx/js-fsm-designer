@@ -83,6 +83,26 @@ function drawText(c, text, x, y, angleOrNull, isSelected) {
 	var width = measure.width;
 	var height = fontHeight;
 
+	let lines = text.split('\n');
+
+	// TODO: multiline
+	for (var i = 0; i < lines.length; i++) {
+		return drawTextLine(c, lines[i], x, y + i*fontHeight, angleOrNull, isSelected);
+	}
+
+	return null;
+}
+
+function drawTextLine(c, text, x, y, angleOrNull, isSelected) {
+	c.font = `${fontHeight}px ${fontFamily}`;
+	var measure = c.measureText(text);
+	var width = measure.width;
+	var height = fontHeight;
+
+	// temporarily set line width to 1
+	var oldLineWidth = c.lineWidth;
+	c.lineWidth = 1;
+
 	// center the text
 	x -= width / 2;
 
@@ -109,6 +129,8 @@ function drawText(c, text, x, y, angleOrNull, isSelected) {
 		c.lineTo(x, y + 10);
 		c.stroke();
 	}
+
+	c.lineWidth = oldLineWidth;
 
 	return {
 		x: x,
@@ -426,8 +448,22 @@ document.onkeydown = function(e) {
 			draw();
 		}
 	} else if(key == 13) { // return key
-		selectedObject = null;
-		draw();
+		if ((selectedObject != null) && e.shiftKey) {
+			// create newline in the label instead of removing focus
+			selectedObject.text += "\n";
+			draw();
+		} else {
+			selectedObject = null;
+			draw();
+		}
+	} else if(key == 27) { // escape key
+		if (selectedObject && selectedObject.text != undefined) {
+			if (selectedObject.text.length == 0) {
+				// delete object - we cancelled creation
+				deleteItem(selectedObject);
+			}
+		}
+		e.preventDefault();
 	}
 
 	// undo on macOS
@@ -1026,9 +1062,10 @@ SelfLink.prototype.setAnchorPoint = function(x, y) {
 };
 
 SelfLink.prototype.getEndPointsAndCircle = function() {
-	var circleX = this.node.x + 1.5 * nodeRadius * Math.cos(this.anchorAngle);
-	var circleY = this.node.y + 1.5 * nodeRadius * Math.sin(this.anchorAngle);
-	var circleRadius = 0.75 * nodeRadius;
+	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
+	var circleX = this.node.x + 1.5 * effectiveNodeRadius * Math.cos(this.anchorAngle);
+	var circleY = this.node.y + 1.5 * effectiveNodeRadius * Math.sin(this.anchorAngle);
+	var circleRadius = 0.75 * effectiveNodeRadius;
 	var startAngle = this.anchorAngle - Math.PI * 0.8;
 	var endAngle = this.anchorAngle + Math.PI * 0.8;
 	var startX = circleX + circleRadius * Math.cos(startAngle);
@@ -1095,7 +1132,7 @@ function Link(a, b) {
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
-	this.perpendicularPart = 30; // pixels from line between nodeA and nodeB
+	this.perpendicularPart = -30; // pixels from line between nodeA and nodeB
 }
 
 Link.prototype.getAnchorPoint = function() {
@@ -1139,8 +1176,8 @@ Link.prototype.getEndPointsAndCircle = function() {
 	var circle = circleFromThreePoints(this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y, anchor.x, anchor.y);
 	var isReversed = (this.perpendicularPart > 0);
 	var reverseScale = isReversed ? 1 : -1;
-	var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x) - reverseScale * nodeRadius / circle.radius;
-	var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x) + reverseScale * nodeRadius / circle.radius;
+	var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x) - reverseScale * (nodeRadius + nodeLineWidth/2) / circle.radius;
+	var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x) + reverseScale * (nodeRadius + nodeLineWidth/2) / circle.radius;
 	var startX = circle.x + circle.radius * Math.cos(startAngle);
 	var startY = circle.y + circle.radius * Math.sin(startAngle);
 	var endX = circle.x + circle.radius * Math.cos(endAngle);
@@ -1297,15 +1334,17 @@ Node.prototype.draw = function(c) {
 Node.prototype.closestPointOnCircle = function(x, y) {
 	var dx = x - this.x;
 	var dy = y - this.y;
+	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
 	var scale = Math.sqrt(dx * dx + dy * dy);
 	return {
-		'x': this.x + dx * nodeRadius / scale,
-		'y': this.y + dy * nodeRadius / scale,
+		'x': this.x + dx * effectiveNodeRadius / scale,
+		'y': this.y + dy * effectiveNodeRadius / scale,
 	};
 };
 
 Node.prototype.containsPoint = function(x, y) {
-	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < nodeRadius*nodeRadius;
+	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
+	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < effectiveNodeRadius*effectiveNodeRadius;
 };
 
 function StartLink(node, start) {

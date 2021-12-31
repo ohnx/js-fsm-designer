@@ -29,13 +29,15 @@ Node.prototype.draw = function(c) {
 Node.prototype.closestPointOnCircle = function(x, y) {
 	var dx = x - this.x;
 	var dy = y - this.y;
+	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
 	var scale = Math.sqrt(dx * dx + dy * dy);
 	return {
-		'x': this.x + dx * nodeRadius / scale,
-		'y': this.y + dy * nodeRadius / scale,
+		'x': this.x + dx * effectiveNodeRadius / scale,
+		'y': this.y + dy * effectiveNodeRadius / scale,
 	};
 };
 
 Node.prototype.containsPoint = function(x, y) {
-	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < nodeRadius*nodeRadius;
+	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
+	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < effectiveNodeRadius*effectiveNodeRadius;
 };

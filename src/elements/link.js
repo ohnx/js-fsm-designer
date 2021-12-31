@@ -7,7 +7,7 @@ function Link(a, b) {
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
-	this.perpendicularPart = 30; // pixels from line between nodeA and nodeB
+	this.perpendicularPart = -30; // pixels from line between nodeA and nodeB
 }
 
 Link.prototype.getAnchorPoint = function() {
@@ -51,8 +51,8 @@ Link.prototype.getEndPointsAndCircle = function() {
 	var circle = circleFromThreePoints(this.nodeA.x, this.nodeA.y, this.nodeB.x, this.nodeB.y, anchor.x, anchor.y);
 	var isReversed = (this.perpendicularPart > 0);
 	var reverseScale = isReversed ? 1 : -1;
-	var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x) - reverseScale * nodeRadius / circle.radius;
-	var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x) + reverseScale * nodeRadius / circle.radius;
+	var startAngle = Math.atan2(this.nodeA.y - circle.y, this.nodeA.x - circle.x) - reverseScale * (nodeRadius + nodeLineWidth/2) / circle.radius;
+	var endAngle = Math.atan2(this.nodeB.y - circle.y, this.nodeB.x - circle.x) + reverseScale * (nodeRadius + nodeLineWidth/2) / circle.radius;
 	var startX = circle.x + circle.radius * Math.cos(startAngle);
 	var startY = circle.y + circle.radius * Math.sin(startAngle);
 	var endX = circle.x + circle.radius * Math.cos(endAngle);
