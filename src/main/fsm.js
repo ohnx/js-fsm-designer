@@ -9,9 +9,9 @@ function convertLatexShortcuts(text) {
 	}
 
 	// subscripts
-	for(var i = 0; i < 10; i++) {
-		text = text.replace(new RegExp('_' + i, 'g'), String.fromCharCode(8320 + i));
-	}
+	//for(var i = 0; i < 10; i++) {
+	//	text = text.replace(new RegExp('_' + i, 'g'), String.fromCharCode(8320 + i));
+	//}
 
 	return text;
 }
@@ -123,8 +123,6 @@ function resetCaret() {
 }
 
 var canvas;
-var canvasWidthInput;
-var canvasHeightInput;
 var nodeRadius = 50;
 var nodes = [];
 var links = [];
@@ -222,11 +220,8 @@ function snapNode(node) {
 
 window.onload = function() {
 	canvas = document.getElementById('canvas');
-	canvasWidthInput = document.getElementById("canvasWidth");
-	canvasHeightInput = document.getElementById("canvasHeight");
-
-	canvasWidthInput.value = canvas.width;
-	canvasHeightInput.value = canvas.height;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
 
 	updateStates();
 	draw();
@@ -238,6 +233,12 @@ window.onload = function() {
 			}
 		});
 	});
+
+	window.addEventListener('resize', function(e) {
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		draw();
+	}, false);
 
 	canvas.onmousedown = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
@@ -433,6 +434,8 @@ document.onkeydown = function(e) {
 			if (selectedObject.text.length == 0) {
 				// delete object - we cancelled creation
 				deleteItem(selectedObject);
+			} else {
+				selectedObject = undefined;
 			}
 		}
 		e.preventDefault();
@@ -601,24 +604,6 @@ function saveAsJson() {
 	jsonLink.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(exportJson());
 }
 
-function importJsonFile() {
-	document.getElementById("importFileInput").click();
-}
-
-function importFileChange(e) {
-	var file = e.target.files[0]
-	var fileReader = new FileReader();
-
-	fileReader.onload = function(fileLoadedEvent) {
-		importJson(fileLoadedEvent.target.result);
-		draw();
-		updateStates();
-		e.target.value = "";
-	}
-
-	fileReader.readAsText(file, "UTF-8");
-}
-
 function setCanvasSize() {
 	if(canvas.width !== canvasWidthInput.value) {
 		var diff = (canvasWidthInput.value - canvas.width) / 2;
@@ -635,16 +620,13 @@ function setCanvasSize() {
 
 function updateStates() {
 	var newState = exportJson();
-	let format = {"nodes":[{"x":612,"y":91,"text":"[RESET]"},{"x":188,"y":209,"text":"state2"},{"x":366,"y":315,"text":"state3"},{"x":343,"y":131,"text":"state1"}],"links":[{"type":"Link","nodeA":1,"nodeB":3,"text":"~(a || b) /","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":3,"nodeB":1,"text":"a / outA","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":1,"nodeB":2,"text":"a || b / outB = a","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"SelfLink","node":2,"text":"a /","anchorAngle":0},{"type":"Link","nodeA":2,"nodeB":3,"text":"~a / outC","lineAngleAdjust":0,"parallelPart":0.4722408026755854,"perpendicularPart":33.11727413531866},{"type":"Link","nodeA":0,"nodeB":3,"text":"[RESET]/","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30}],"canvasWidth":800,"canvasHeight":600};
-
-	if (states.length == 0)
-		importJson(JSON.stringify(format));
 
 	if(newState !== states[statesIndex]) {
 		statesIndex++;
 		states.length = statesIndex;
 		states.push(exportJson());
 	}
+	if (window.ferris) window.ferris.saveState();
 }
 
 function getPreviousState() {

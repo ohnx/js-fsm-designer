@@ -37,9 +37,9 @@ function convertLatexShortcuts(text) {
 	}
 
 	// subscripts
-	for(var i = 0; i < 10; i++) {
-		text = text.replace(new RegExp('_' + i, 'g'), String.fromCharCode(8320 + i));
-	}
+	//for(var i = 0; i < 10; i++) {
+	//	text = text.replace(new RegExp('_' + i, 'g'), String.fromCharCode(8320 + i));
+	//}
 
 	return text;
 }
@@ -151,8 +151,6 @@ function resetCaret() {
 }
 
 var canvas;
-var canvasWidthInput;
-var canvasHeightInput;
 var nodeRadius = 50;
 var nodes = [];
 var links = [];
@@ -250,11 +248,8 @@ function snapNode(node) {
 
 window.onload = function() {
 	canvas = document.getElementById('canvas');
-	canvasWidthInput = document.getElementById("canvasWidth");
-	canvasHeightInput = document.getElementById("canvasHeight");
-
-	canvasWidthInput.value = canvas.width;
-	canvasHeightInput.value = canvas.height;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
 
 	updateStates();
 	draw();
@@ -266,6 +261,12 @@ window.onload = function() {
 			}
 		});
 	});
+
+	window.addEventListener('resize', function(e) {
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		draw();
+	}, false);
 
 	canvas.onmousedown = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
@@ -461,6 +462,8 @@ document.onkeydown = function(e) {
 			if (selectedObject.text.length == 0) {
 				// delete object - we cancelled creation
 				deleteItem(selectedObject);
+			} else {
+				selectedObject = undefined;
 			}
 		}
 		e.preventDefault();
@@ -629,24 +632,6 @@ function saveAsJson() {
 	jsonLink.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(exportJson());
 }
 
-function importJsonFile() {
-	document.getElementById("importFileInput").click();
-}
-
-function importFileChange(e) {
-	var file = e.target.files[0]
-	var fileReader = new FileReader();
-
-	fileReader.onload = function(fileLoadedEvent) {
-		importJson(fileLoadedEvent.target.result);
-		draw();
-		updateStates();
-		e.target.value = "";
-	}
-
-	fileReader.readAsText(file, "UTF-8");
-}
-
 function setCanvasSize() {
 	if(canvas.width !== canvasWidthInput.value) {
 		var diff = (canvasWidthInput.value - canvas.width) / 2;
@@ -663,16 +648,13 @@ function setCanvasSize() {
 
 function updateStates() {
 	var newState = exportJson();
-	let format = {"nodes":[{"x":612,"y":91,"text":"[RESET]"},{"x":188,"y":209,"text":"state2"},{"x":366,"y":315,"text":"state3"},{"x":343,"y":131,"text":"state1"}],"links":[{"type":"Link","nodeA":1,"nodeB":3,"text":"~(a || b) /","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":3,"nodeB":1,"text":"a / outA","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"Link","nodeA":1,"nodeB":2,"text":"a || b / outB = a","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30},{"type":"SelfLink","node":2,"text":"a /","anchorAngle":0},{"type":"Link","nodeA":2,"nodeB":3,"text":"~a / outC","lineAngleAdjust":0,"parallelPart":0.4722408026755854,"perpendicularPart":33.11727413531866},{"type":"Link","nodeA":0,"nodeB":3,"text":"[RESET]/","lineAngleAdjust":0,"parallelPart":0.5,"perpendicularPart":30}],"canvasWidth":800,"canvasHeight":600};
-
-	if (states.length == 0)
-		importJson(JSON.stringify(format));
 
 	if(newState !== states[statesIndex]) {
 		statesIndex++;
 		states.length = statesIndex;
 		states.push(exportJson());
 	}
+	if (window.ferris) window.ferris.saveState();
 }
 
 function getPreviousState() {
@@ -707,13 +689,14 @@ function importJson(jsonString) {
 	}
 
 	try {
-		var backup = JSON.parse(jsonString);
+		var backup;
+		if (typeof jsonString === 'string' || jsonString instanceof String) {
+			backup = JSON.parse(jsonString);
+		} else {
+			backup = jsonString;
+		}
 		nodes = [];
 		links = [];
-		canvas.width = backup.canvasWidth || canvas.width;
-		canvas.height = backup.canvasHeight || canvas.height;
-		canvasWidthInput.value = canvas.width;
-		canvasHeightInput.value = canvas.height;
 
 		for(var i = 0; i < backup.nodes.length; i++) {
 			var backupNode = backup.nodes[i];
@@ -745,12 +728,17 @@ function importJson(jsonString) {
 				links.push(link);
 			}
 		}
+
+		currentScale = backup.scale;
+		translateX = backup.position.x;
+		translateY = backup.position.y;
 	} catch(e) {
 		alert("Can't import that file!");
+		console.log(e);
 	}
 }
 
-function exportJson() {
+function exportJson(asObject) {
 	if(!JSON) {
 		return;
 	}
@@ -758,8 +746,9 @@ function exportJson() {
 	var backup = {
 		'nodes': [],
 		'links': [],
-		'canvasWidth': canvas.width,
-		'canvasHeight': canvas.height
+		'scale': currentScale,
+		'position': {x: translateX, y: translateY},
+		
 	};
 	for(var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
@@ -805,123 +794,7 @@ function exportJson() {
 		}
 	}
 
-	return JSON.stringify(backup);
-}
-
-function convert(obj, meta) {
-  let output = {};
-  output.version = 2;
-  output.meta = meta;
-  output.machine = {};
-  output.machine.nodes = obj.nodes.map((x, i) => {
-    return {
-      id: i,
-      name: x.text
-    };
-  });
-  output.machine.edges = obj.links.map((x, i) => {
-    let res = {};
-    if (x.type == 'StartLink') {
-      if (output.meta.reset) {
-        // TODO: send message to user that we are overwriting the reset node
-      }
-      output.meta.reset = x.node;
-      return;
-    } else if (x.type == 'Link') {
-      res.start = x.nodeA;
-      res.end = x.nodeB;
-    } else if (x.type == 'SelfLink') {
-      res.start = x.node;
-      res.end = x.node;
-    }
-
-    let condOut = x.text.split('/');
-    if (condOut.length != 2) {
-      // oops
-    }
-    res.condition = condOut[0].split(' ').join('');
-    let outputVars = condOut[1].split(' ').join('');
-    res.output = outputVars.length > 0 ? outputVars.split(',') : [];
-
-    return res;
-  }).filter(x => x);
-
-  return output;
-};
-
-let meta = {
-  name: "NFTB_fsm",
-  // reset state will be determined
-  signals: {
-    // signals (input/output) 
-    input: [
-      {
-        // input signals have a name and a width
-        name: "fifo_empty",
-        width: 1
-      },
-      {name: "free_outbound", width: 1}
-    ],
-    output: [
-      // output signals also have an extra parameter:
-      // for width = 1 signals, if they are inverted
-      // inverted == true if they are ACTIVE LOW
-      // inverted == false if they are ACTIVE HIGH
-      // for width > 1 signals, a "default" setting (if not specified, defaults to 0)
-      {name: "fifo_read", width: 1, inverted: false},
-      {name: "buf_en", width: 1, inverted: false},
-      {name: "sel", width: 2},
-      {name: "put_outbound", width: 1, inverted: false}
-    ]
-  }
-};
-
-
-// log levels go from 0 (debug) to 5 (bad)
-const TEST_OPTIONS = {
-  // options for outputType:
-  // file (have stuff like `default_nettype + module),
-  // module (input/output, etc.). Use name as module name
-  // code (just the FSM itself)
-  outputType: "file",
-  // clock and reset options are only used for file/module options
-  clock: {
-    // name of the clock signal
-    name: "clock",
-    // edge to care about (options are posedge or negedge)
-    edge: "posedge"
-  },
-  reset: {
-    // name of reset signal
-    name: "reset_n",
-    // edge to care about (options are posedge or negedge)
-    edge: "negedge"
-  },
-  // in case we need to remap
-  cstate: "cstate",
-  nstate: "nstate",
-  // style:
-  style: {
-    // indent by what (can put spaces/tabs/whatever in here)
-    indent: "  ",
-    // skip outputting the transition to same state
-    skipOutputTransitionToSameState: true,
-  },
-  // the logger to use
-  logger: function(level, message) {
-    console.log(`Log ${level}: ${message}`);
-  },
-};
-
-function exportVerilog() {
-	let fsmData = JSON.parse(exportJson());
-	return window.highroller.convert(convert(fsmData, meta), TEST_OPTIONS);
-}
-
-function saveAsVerilog() {
-	var verilogLink = document.getElementById('verilogLink');
-	verilogLink.download = 'exportedToVerilog.sv';
-	verilogLink.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(exportVerilog());
+	return asObject ? backup : JSON.stringify(backup);
 }
 
 function det(a, b, c, d, e, f, g, h, i) {
@@ -1158,6 +1031,7 @@ function SelfLink(node, mouse) {
 	this.text = '';
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = ''; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -1205,7 +1079,13 @@ SelfLink.prototype.getEndPointsAndCircle = function() {
 
 SelfLink.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	var needsUndoColor = false;
 	this.textBounds = null;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
 
 	// draw arc
 	c.beginPath();
@@ -1217,6 +1097,10 @@ SelfLink.prototype.draw = function(c) {
 	this.textBounds = drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
+	}
 };
 
 SelfLink.prototype.labelContainsPoint = function(stuff, x, y) {
@@ -1249,6 +1133,7 @@ function Link(a, b) {
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = null;
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -1320,8 +1205,15 @@ Link.prototype.getEndPointsAndCircle = function() {
 
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	var needsUndoColor = false;
 	this.textBounds = null;
 	this.intersectedLabel = false;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
+
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -1353,6 +1245,10 @@ Link.prototype.draw = function(c) {
 		var textY = (stuff.startY + stuff.endY) / 2;
 		var textAngle = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY);
 		this.textBounds = drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
+	}
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
 	}
 };
 
@@ -1476,6 +1372,7 @@ function StartLink(node, start) {
 	this.text = '';
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = null;
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -1509,7 +1406,13 @@ StartLink.prototype.getEndPoints = function() {
 
 StartLink.prototype.draw = function(c) {
 	var stuff = this.getEndPoints();
+	var needsUndoColor = false;
 	this.textBounds = null;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
 
 	// draw the line
 	c.beginPath();
@@ -1523,6 +1426,10 @@ StartLink.prototype.draw = function(c) {
 
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
+	}
 };
 
 StartLink.prototype.labelContainsPoint = function(stuff, x, y) {

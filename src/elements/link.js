@@ -5,6 +5,7 @@ function Link(a, b) {
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = null;
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -76,8 +77,15 @@ Link.prototype.getEndPointsAndCircle = function() {
 
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	var needsUndoColor = false;
 	this.textBounds = null;
 	this.intersectedLabel = false;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
+
 	// draw arc
 	c.beginPath();
 	if(stuff.hasCircle) {
@@ -109,6 +117,10 @@ Link.prototype.draw = function(c) {
 		var textY = (stuff.startY + stuff.endY) / 2;
 		var textAngle = Math.atan2(stuff.endX - stuff.startX, stuff.startY - stuff.endY);
 		this.textBounds = drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
+	}
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
 	}
 };
 

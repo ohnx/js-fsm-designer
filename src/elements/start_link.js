@@ -5,6 +5,7 @@ function StartLink(node, start) {
 	this.text = '';
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = null;
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -38,7 +39,13 @@ StartLink.prototype.getEndPoints = function() {
 
 StartLink.prototype.draw = function(c) {
 	var stuff = this.getEndPoints();
+	var needsUndoColor = false;
 	this.textBounds = null;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
 
 	// draw the line
 	c.beginPath();
@@ -52,6 +59,10 @@ StartLink.prototype.draw = function(c) {
 
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
+	}
 };
 
 StartLink.prototype.labelContainsPoint = function(stuff, x, y) {

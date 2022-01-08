@@ -5,6 +5,7 @@ function SelfLink(node, mouse) {
 	this.text = '';
 	this.textBounds = null;
 	this.intersectedLabel = false;
+	this.errorText = ''; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -52,7 +53,13 @@ SelfLink.prototype.getEndPointsAndCircle = function() {
 
 SelfLink.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
+	var needsUndoColor = false;
 	this.textBounds = null;
+
+	if (this.errorText && c.fillStyle == '#000000') {
+		c.fillStyle = c.strokeStyle = 'red';
+		needsUndoColor = true;
+	}
 
 	// draw arc
 	c.beginPath();
@@ -64,6 +71,10 @@ SelfLink.prototype.draw = function(c) {
 	this.textBounds = drawText(c, this.text, textX, textY, this.anchorAngle, selectedObject == this);
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
+
+	if (needsUndoColor) {
+		c.fillStyle = c.strokeStyle = 'black';
+	}
 };
 
 SelfLink.prototype.labelContainsPoint = function(stuff, x, y) {
