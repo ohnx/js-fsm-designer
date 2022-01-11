@@ -17,7 +17,15 @@ function importJson(jsonString) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y);
 			node.isAcceptState = backupNode.isAcceptState;
-			node.text = backupNode.text;
+			if (backupNode.name) {
+				node.name = backupNode.name;
+				node.outputs = backupNode.outputs;
+				node.updateText();
+			} else {
+				// old format
+				// punt the updating of the format to ferris frontend
+				node.text = backupNode.text;
+			}
 			nodes.push(node);
 		}
 		for(var i = 0; i < backup.links.length; i++) {
@@ -26,20 +34,28 @@ function importJson(jsonString) {
 			if(backupLink.type == 'SelfLink') {
 				link = new SelfLink(nodes[backupLink.node]);
 				link.anchorAngle = backupLink.anchorAngle;
-				link.text = backupLink.text;
 			} else if(backupLink.type == 'StartLink') {
 				link = new StartLink(nodes[backupLink.node]);
 				link.deltaX = backupLink.deltaX;
 				link.deltaY = backupLink.deltaY;
-				link.text = backupLink.text;
 			} else if(backupLink.type == 'Link') {
 				link = new Link(nodes[backupLink.nodeA], nodes[backupLink.nodeB]);
 				link.parallelPart = backupLink.parallelPart;
 				link.perpendicularPart = backupLink.perpendicularPart;
-				link.text = backupLink.text;
 				link.lineAngleAdjust = backupLink.lineAngleAdjust;
 			}
+
 			if(link != null) {
+				if (backupLink.condition) {
+					link.condition = backupLink.condition;
+					link.outputs = backupLink.outputs;
+					link.updateText();
+				} else {
+					// old format
+					// punt the updating of the format to ferris frontend
+					link.text = backupLink.text;
+				}
+
 				links.push(link);
 			}
 		}
@@ -48,8 +64,9 @@ function importJson(jsonString) {
 		translateX = backup.position.x;
 		translateY = backup.position.y;
 	} catch(e) {
+		// TODO: don't alert(), lol
 		alert("Can't import that file!");
-		console.log(e);
+		console.error(e);
 	}
 }
 
@@ -71,6 +88,8 @@ function exportJson(asObject) {
 			'x': node.x,
 			'y': node.y,
 			'text': node.text,
+			'name': node.name,
+			'outputs': node.outputs,
 			'isAcceptState': node.isAcceptState,
 		};
 		backup.nodes.push(backupNode);
@@ -83,6 +102,8 @@ function exportJson(asObject) {
 				'type': 'SelfLink',
 				'node': nodes.indexOf(link.node),
 				'text': link.text,
+				'condition': link.condition,
+				'outputs': link.outputs,
 				'anchorAngle': link.anchorAngle,
 			};
 		} else if(link instanceof StartLink) {
@@ -99,6 +120,8 @@ function exportJson(asObject) {
 				'nodeA': nodes.indexOf(link.nodeA),
 				'nodeB': nodes.indexOf(link.nodeB),
 				'text': link.text,
+				'condition': link.condition,
+				'outputs': link.outputs,
 				'lineAngleAdjust': link.lineAngleAdjust,
 				'parallelPart': link.parallelPart,
 				'perpendicularPart': link.perpendicularPart,

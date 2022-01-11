@@ -2,6 +2,8 @@ function Link(a, b) {
 	this.nodeA = a;
 	this.nodeB = b;
 	this.text = '';
+	this.condition = '';
+	this.outputs = [];
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
@@ -81,9 +83,9 @@ Link.prototype.draw = function(c) {
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw arc
@@ -175,4 +177,8 @@ Link.prototype.lineContainsPoint = function(stuff, x, y) {
 		return (percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding);
 	}
 	return false;
+};
+
+Link.prototype.updateText = function() {
+	this.text = `${this.condition} / ${this.outputs.join(', ')}`;
 };

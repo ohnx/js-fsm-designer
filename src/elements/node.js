@@ -4,7 +4,9 @@ function Node(x, y) {
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
 	this.text = '';
-	this.outputs = '';
+	this.name = '';
+	this.outputs = [];
+	this.errorText = null;
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -18,6 +20,13 @@ Node.prototype.setAnchorPoint = function(x, y) {
 };
 
 Node.prototype.draw = function(c) {
+	var oldColor = null;
+
+	if (this.errorText && c.fillStyle == canvasForeground) {
+		oldColor = c.fillStyle;
+		c.fillStyle = c.strokeStyle = canvasWarning;
+	}
+
 	// draw the circle
 	c.beginPath();
 	c.arc(this.x, this.y, nodeRadius, 0, 2 * Math.PI, false);
@@ -25,6 +34,10 @@ Node.prototype.draw = function(c) {
 
 	// draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
+
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
+	}
 };
 
 Node.prototype.closestPointOnCircle = function(x, y) {
@@ -41,4 +54,8 @@ Node.prototype.closestPointOnCircle = function(x, y) {
 Node.prototype.containsPoint = function(x, y) {
 	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
 	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < effectiveNodeRadius*effectiveNodeRadius;
+};
+
+Node.prototype.updateText = function() {
+	this.text = (this.outputs.length > 0) ? (`${this.name} / ${this.outputs.join(', ')}`) : this.name;
 };

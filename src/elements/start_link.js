@@ -42,9 +42,9 @@ StartLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw the line

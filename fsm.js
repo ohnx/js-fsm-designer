@@ -155,7 +155,8 @@ var nodeLineWidth = 1, linkLineWidth = 1;
 
 var canvasBackground = 'white';
 var canvasForeground = 'black';
-var canvasSelected = 'blue';
+var canvasSelected = '#007bff';
+var canvasWarning = '#dc3545';
 
 /* dark mode
 var canvasBackground = 'black'; //'white';
@@ -216,7 +217,7 @@ function selectObject(x, y) {
 	if (result && window.ferris) {
 		if (result instanceof Node) {
 			window.ferris.editItem('node', result);
-		} else {
+		} else if (!(result instanceof StartLink)) {
 			window.ferris.editItem('edge', result);
 		}
 	}
@@ -270,22 +271,29 @@ window.onload = function() {
 	let mediaListener = window.matchMedia('(prefers-color-scheme: dark)');
 
 	if (mediaListener.matches) {
-		canvasBackground = '#111'; //'white';
-		canvasForeground = 'white'; //'black';
+		canvasBackground = '#111111'; //'white';
+		canvasForeground = '#ffffff'; //'black';
 		canvasSelected = '#00A4FB'; //'blue';
+		canvasWarning = '#dc3545'; //'red';
+	} else { // light mode
+		canvasBackground = '#ffffff';
+		canvasForeground = '#000000';
+		canvasSelected = '#007bff';
+		canvasWarning = '#dc3545';
 	}
 
 	mediaListener.addEventListener('change', function(event) {
 		if (event.matches) { // dark mode
-			canvasBackground = '#111'; //'white';
-			canvasForeground = 'white'; //'black';
+			canvasBackground = '#111111'; //'white';
+			canvasForeground = '#ffffff'; //'black';
 			canvasSelected = '#00A4FB'; //'blue';
+			canvasWarning = '#dc3545'; //'red';
 		} else { // light mode
-			canvasBackground = 'white';
-			canvasForeground = 'black';
-			canvasSelected = 'blue';
+			canvasBackground = '#ffffff';
+			canvasForeground = '#000000';
+			canvasSelected = '#007bff';
+			canvasWarning = '#dc3545';
 		}
-		console.log('trigger');
 		draw();
 	});
 
@@ -419,7 +427,13 @@ window.onload = function() {
 		if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
 				selectedObject = currentLink;
-				if (window.ferris) window.ferris.editItem('edge', currentLink);
+				if (!(currentLink instanceof StartLink)) {
+					if (window.ferris) window.ferris.editItem('edge', currentLink);
+				} else {
+					// clear the current editing item no matter what
+					if (window.ferris) window.ferris.commitEditItem(true);
+				}
+				
 				links.push(currentLink);
 			}
 			currentLink = null;
@@ -461,7 +475,7 @@ document.onkeydown = function(e) {
 	if (key == 27) { // escape key
 		if(selectedObject != null) {
 			// don't save changes and cancel commit
-			if (selectedObject.text.length == 0) {
+			if (!(selectedObject instanceof StartLink) && selectedObject.text.length == 0) {
 				// also delete this object
 				deleteItem(selectedObject);
 			}
@@ -619,8 +633,15 @@ function getNextState() {
 	draw();
 }
 
-function updateSelectedObject(input) {
-	selectedObject.text = input;
+function updateSelectedObject(name, condition, outputs) {
+	if (condition) {
+		selectedObject.condition = condition;
+	} else if (name) {
+		selectedObject.name = name;
+	}
+
+	selectedObject.outputs = outputs;
+	if (selectedObject.updateText) selectedObject.updateText();
 	selectedObject = null;
 	updateStates();
 	draw();
@@ -645,7 +666,15 @@ function importJson(jsonString) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y);
 			node.isAcceptState = backupNode.isAcceptState;
-			node.text = backupNode.text;
+			if (backupNode.name) {
+				node.name = backupNode.name;
+				node.outputs = backupNode.outputs;
+				node.updateText();
+			} else {
+				// old format
+				// punt the updating of the format to ferris frontend
+				node.text = backupNode.text;
+			}
 			nodes.push(node);
 		}
 		for(var i = 0; i < backup.links.length; i++) {
@@ -654,20 +683,28 @@ function importJson(jsonString) {
 			if(backupLink.type == 'SelfLink') {
 				link = new SelfLink(nodes[backupLink.node]);
 				link.anchorAngle = backupLink.anchorAngle;
-				link.text = backupLink.text;
 			} else if(backupLink.type == 'StartLink') {
 				link = new StartLink(nodes[backupLink.node]);
 				link.deltaX = backupLink.deltaX;
 				link.deltaY = backupLink.deltaY;
-				link.text = backupLink.text;
 			} else if(backupLink.type == 'Link') {
 				link = new Link(nodes[backupLink.nodeA], nodes[backupLink.nodeB]);
 				link.parallelPart = backupLink.parallelPart;
 				link.perpendicularPart = backupLink.perpendicularPart;
-				link.text = backupLink.text;
 				link.lineAngleAdjust = backupLink.lineAngleAdjust;
 			}
+
 			if(link != null) {
+				if (backupLink.condition) {
+					link.condition = backupLink.condition;
+					link.outputs = backupLink.outputs;
+					link.updateText();
+				} else {
+					// old format
+					// punt the updating of the format to ferris frontend
+					link.text = backupLink.text;
+				}
+
 				links.push(link);
 			}
 		}
@@ -676,8 +713,9 @@ function importJson(jsonString) {
 		translateX = backup.position.x;
 		translateY = backup.position.y;
 	} catch(e) {
+		// TODO: don't alert(), lol
 		alert("Can't import that file!");
-		console.log(e);
+		console.error(e);
 	}
 }
 
@@ -699,6 +737,8 @@ function exportJson(asObject) {
 			'x': node.x,
 			'y': node.y,
 			'text': node.text,
+			'name': node.name,
+			'outputs': node.outputs,
 			'isAcceptState': node.isAcceptState,
 		};
 		backup.nodes.push(backupNode);
@@ -711,6 +751,8 @@ function exportJson(asObject) {
 				'type': 'SelfLink',
 				'node': nodes.indexOf(link.node),
 				'text': link.text,
+				'condition': link.condition,
+				'outputs': link.outputs,
 				'anchorAngle': link.anchorAngle,
 			};
 		} else if(link instanceof StartLink) {
@@ -727,6 +769,8 @@ function exportJson(asObject) {
 				'nodeA': nodes.indexOf(link.nodeA),
 				'nodeB': nodes.indexOf(link.nodeB),
 				'text': link.text,
+				'condition': link.condition,
+				'outputs': link.outputs,
 				'lineAngleAdjust': link.lineAngleAdjust,
 				'parallelPart': link.parallelPart,
 				'perpendicularPart': link.perpendicularPart,
@@ -972,9 +1016,11 @@ function SelfLink(node, mouse) {
 	this.anchorAngle = 0;
 	this.mouseOffsetAngle = 0;
 	this.text = '';
+	this.condition = '';
+	this.outputs = [];
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = ''; //'ahhh';
+	this.errorText = 'ahh'; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -1025,9 +1071,9 @@ SelfLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw arc
@@ -1069,10 +1115,16 @@ SelfLink.prototype.containsPoint = function(x, y) {
 			this.labelContainsPoint(stuff, x, y);
 };
 
+SelfLink.prototype.updateText = function() {
+	this.text = `${this.condition} / ${this.outputs.join(', ')}`;
+};
+
 function Link(a, b) {
 	this.nodeA = a;
 	this.nodeB = b;
 	this.text = '';
+	this.condition = '';
+	this.outputs = [];
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
@@ -1152,9 +1204,9 @@ Link.prototype.draw = function(c) {
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw arc
@@ -1248,6 +1300,10 @@ Link.prototype.lineContainsPoint = function(stuff, x, y) {
 	return false;
 };
 
+Link.prototype.updateText = function() {
+	this.text = `${this.condition} / ${this.outputs.join(', ')}`;
+};
+
 function TemporaryLink(from, to) {
 	this.from = from;
 	this.to = to;
@@ -1270,7 +1326,9 @@ function Node(x, y) {
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
 	this.text = '';
-	this.outputs = '';
+	this.name = '';
+	this.outputs = [];
+	this.errorText = null;
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -1284,6 +1342,13 @@ Node.prototype.setAnchorPoint = function(x, y) {
 };
 
 Node.prototype.draw = function(c) {
+	var oldColor = null;
+
+	if (this.errorText && c.fillStyle == canvasForeground) {
+		oldColor = c.fillStyle;
+		c.fillStyle = c.strokeStyle = canvasWarning;
+	}
+
 	// draw the circle
 	c.beginPath();
 	c.arc(this.x, this.y, nodeRadius, 0, 2 * Math.PI, false);
@@ -1291,6 +1356,10 @@ Node.prototype.draw = function(c) {
 
 	// draw the text
 	drawText(c, this.text, this.x, this.y, null, selectedObject == this);
+
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
+	}
 };
 
 Node.prototype.closestPointOnCircle = function(x, y) {
@@ -1307,6 +1376,10 @@ Node.prototype.closestPointOnCircle = function(x, y) {
 Node.prototype.containsPoint = function(x, y) {
 	var effectiveNodeRadius = nodeRadius + nodeLineWidth/2;
 	return (x - this.x)*(x - this.x) + (y - this.y)*(y - this.y) < effectiveNodeRadius*effectiveNodeRadius;
+};
+
+Node.prototype.updateText = function() {
+	this.text = (this.outputs.length > 0) ? (`${this.name} / ${this.outputs.join(', ')}`) : this.name;
 };
 
 function StartLink(node, start) {
@@ -1353,9 +1426,9 @@ StartLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw the line

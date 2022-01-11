@@ -127,7 +127,8 @@ var nodeLineWidth = 1, linkLineWidth = 1;
 
 var canvasBackground = 'white';
 var canvasForeground = 'black';
-var canvasSelected = 'blue';
+var canvasSelected = '#007bff';
+var canvasWarning = '#dc3545';
 
 /* dark mode
 var canvasBackground = 'black'; //'white';
@@ -188,7 +189,7 @@ function selectObject(x, y) {
 	if (result && window.ferris) {
 		if (result instanceof Node) {
 			window.ferris.editItem('node', result);
-		} else {
+		} else if (!(result instanceof StartLink)) {
 			window.ferris.editItem('edge', result);
 		}
 	}
@@ -242,22 +243,29 @@ window.onload = function() {
 	let mediaListener = window.matchMedia('(prefers-color-scheme: dark)');
 
 	if (mediaListener.matches) {
-		canvasBackground = '#111'; //'white';
-		canvasForeground = 'white'; //'black';
+		canvasBackground = '#111111'; //'white';
+		canvasForeground = '#ffffff'; //'black';
 		canvasSelected = '#00A4FB'; //'blue';
+		canvasWarning = '#dc3545'; //'red';
+	} else { // light mode
+		canvasBackground = '#ffffff';
+		canvasForeground = '#000000';
+		canvasSelected = '#007bff';
+		canvasWarning = '#dc3545';
 	}
 
 	mediaListener.addEventListener('change', function(event) {
 		if (event.matches) { // dark mode
-			canvasBackground = '#111'; //'white';
-			canvasForeground = 'white'; //'black';
+			canvasBackground = '#111111'; //'white';
+			canvasForeground = '#ffffff'; //'black';
 			canvasSelected = '#00A4FB'; //'blue';
+			canvasWarning = '#dc3545'; //'red';
 		} else { // light mode
-			canvasBackground = 'white';
-			canvasForeground = 'black';
-			canvasSelected = 'blue';
+			canvasBackground = '#ffffff';
+			canvasForeground = '#000000';
+			canvasSelected = '#007bff';
+			canvasWarning = '#dc3545';
 		}
-		console.log('trigger');
 		draw();
 	});
 
@@ -391,7 +399,13 @@ window.onload = function() {
 		if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
 				selectedObject = currentLink;
-				if (window.ferris) window.ferris.editItem('edge', currentLink);
+				if (!(currentLink instanceof StartLink)) {
+					if (window.ferris) window.ferris.editItem('edge', currentLink);
+				} else {
+					// clear the current editing item no matter what
+					if (window.ferris) window.ferris.commitEditItem(true);
+				}
+				
 				links.push(currentLink);
 			}
 			currentLink = null;
@@ -433,7 +447,7 @@ document.onkeydown = function(e) {
 	if (key == 27) { // escape key
 		if(selectedObject != null) {
 			// don't save changes and cancel commit
-			if (selectedObject.text.length == 0) {
+			if (!(selectedObject instanceof StartLink) && selectedObject.text.length == 0) {
 				// also delete this object
 				deleteItem(selectedObject);
 			}
@@ -591,8 +605,15 @@ function getNextState() {
 	draw();
 }
 
-function updateSelectedObject(input) {
-	selectedObject.text = input;
+function updateSelectedObject(name, condition, outputs) {
+	if (condition) {
+		selectedObject.condition = condition;
+	} else if (name) {
+		selectedObject.name = name;
+	}
+
+	selectedObject.outputs = outputs;
+	if (selectedObject.updateText) selectedObject.updateText();
 	selectedObject = null;
 	updateStates();
 	draw();

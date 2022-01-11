@@ -3,9 +3,11 @@ function SelfLink(node, mouse) {
 	this.anchorAngle = 0;
 	this.mouseOffsetAngle = 0;
 	this.text = '';
+	this.condition = '';
+	this.outputs = [];
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = ''; //'ahhh';
+	this.errorText = 'ahh'; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -56,9 +58,9 @@ SelfLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText) {
+	if (this.errorText && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
-		c.fillStyle = c.strokeStyle = 'red';
+		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
 
 	// draw arc
@@ -98,4 +100,8 @@ SelfLink.prototype.containsPoint = function(x, y) {
 	var distance = Math.sqrt(dx*dx + dy*dy) - stuff.circleRadius;
 	return (Math.abs(distance) < hitTargetPadding) ||
 			this.labelContainsPoint(stuff, x, y);
+};
+
+SelfLink.prototype.updateText = function() {
+	this.text = `${this.condition} / ${this.outputs.join(', ')}`;
 };
