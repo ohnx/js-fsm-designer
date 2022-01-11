@@ -117,18 +117,10 @@ function drawTextLine(c, text, x, y, angleOrNull, isSelected) {
 		y += cornerPointY + cos * slide;
 	}
 
-	// draw text and caret (round the coordinates so the caret falls on a pixel)
+	// draw text
 	x = Math.round(x);
 	y = Math.round(y);
 	c.fillText(text, x, y + 6);
-	if(isSelected && caretVisible && canvasHasFocus() && document.hasFocus()) {
-		var textBeforeCaretWidth = c.measureText(text.substring(0, caretIndex)).width;
-		x += textBeforeCaretWidth;
-		c.beginPath();
-		c.moveTo(x, y - 10);
-		c.lineTo(x, y + 10);
-		c.stroke();
-	}
 
 	c.lineWidth = oldLineWidth;
 
@@ -138,16 +130,6 @@ function drawTextLine(c, text, x, y, angleOrNull, isSelected) {
 		h: height + measure.actualBoundingBoxDescent,
 		w: width
 	};
-}
-
-var caretTimer;
-var caretVisible = true;
-var caretIndex = 0;
-
-function resetCaret() {
-	clearInterval(caretTimer);
-	caretTimer = setInterval('caretVisible = !caretVisible; draw()', 500);
-	caretVisible = true;
 }
 
 var canvas;
@@ -310,8 +292,6 @@ window.onload = function() {
 				}
 			}
 
-			caretIndex = selectedObject.text.length;
-			resetCaret();
 		} else if(e.shiftKey) {
 			currentLink = new TemporaryLink(canvasCoords, canvasCoords);
 		} else {
@@ -326,7 +306,6 @@ window.onload = function() {
 			return false;
 		} else {
 			// otherwise, let the browser switch the focus away from wherever it was
-			resetCaret();
 			return true;
 		}
 	};
@@ -339,11 +318,10 @@ window.onload = function() {
 		if(selectedObject == null) {
 			selectedObject = new Node(canvasCoords.x, canvasCoords.y);
 			nodes.push(selectedObject);
-			resetCaret();
+			if (window.ferris) window.ferris.editItem(selectedObject, 'node');
 			draw();
 		}
 
-		caretIndex = selectedObject.text.length;
 		updateStates();
 	};
 
@@ -403,9 +381,8 @@ window.onload = function() {
 		if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
 				selectedObject = currentLink;
+				if (window.ferris) window.ferris.editItem(currentLink, 'edge');
 				links.push(currentLink);
-				caretIndex = 0;
-				resetCaret();
 			}
 			currentLink = null;
 			draw();
@@ -442,71 +419,48 @@ function deleteItem(obj) {
 document.onkeydown = function(e) {
 	var key = crossBrowserKey(e);
 
-	if(!canvasHasFocus()) {
-		// don't read keystrokes when other things have focus
-		return true;
-	} else if(key == 8) { // backspace key
-		if(selectedObject != null && 'text' in selectedObject) {
-			// Remove the character before the caret
-			var textBeforeCaret = selectedObject.text.substring(0, caretIndex - 1);
-			
-			// Get the text afte the caret
-			var textAfterCaret = selectedObject.text.substring(caretIndex);
-			
-			// Set the selected objects text to the concatnation of the text before and after the caret
-			selectedObject.text = textBeforeCaret + textAfterCaret;
-
-			// Decrement the caret index and reset the caret
-			if(--caretIndex < 0)
-				caretIndex = 0;
-
-			resetCaret();
+	// do this even if we don't have focus
+	if (key == 27) { // escape key
+		if(selectedObject != null) {
+			// don't save changes and cancel commit
+			selectedObject = null;
+			if (window.ferris) window.ferris.commitEditItem(true);
 			draw();
 		}
 
-		// backspace is a shortcut for the back button, but do NOT want to change pages
-		return false;
+		e.preventDefault();
 	} else if(key == 46) { // delete key
 		if(selectedObject != null) {
 			deleteItem(selectedObject);
 			selectedObject = null;
+			if (window.ferris) window.ferris.commitEditItem(true);
 			draw();
 		}
-	} else if(key == 13) { // return key
-		if ((selectedObject != null) && e.shiftKey) {
-			// create newline in the label instead of removing focus
-			selectedObject.text += "\n";
-			draw();
-		} else {
-			selectedObject = null;
-			draw();
-		}
-	} else if(key == 27) { // escape key
-		if (selectedObject && selectedObject.text != undefined) {
-			if (selectedObject.text.length == 0) {
-				// delete object - we cancelled creation
-				deleteItem(selectedObject);
-			} else {
-				selectedObject = undefined;
-			}
-		}
-		e.preventDefault();
 	}
 
 	// undo on macOS
 	if (e.metaKey) {
+		// do this even if we don't have focus
+		if(key == 68) {// command d
+			if(selectedObject != null) {
+				deleteItem(selectedObject);
+				selectedObject = null;
+				if (window.ferris) window.ferris.commitEditItem(true);
+				draw();
+			}
+			e.preventDefault();
+		}
+		
+		if(!canvasHasFocus()) {
+			// don't read keystrokes when other things have focus
+			return true;
+		}
+
 		if (key == 90) {// command z
 			getPreviousState();
 			e.preventDefault();
 		} else if(key == 89) {// command y
 			getNextState();
-			e.preventDefault();
-		} else if(key == 68) {// command d
-			if(selectedObject != null) {
-				deleteItem(selectedObject);
-				selectedObject = null;
-				draw();
-			}
 			e.preventDefault();
 		}
 	}
@@ -514,28 +468,6 @@ document.onkeydown = function(e) {
 
 document.onkeyup = function(e) {
 	var key = crossBrowserKey(e);
-
-	// Left arrow key
-	if(key === 37){
-		if(selectedObject && selectedObject.text){
-			if(--caretIndex < 0)
-				caretIndex = 0;
-
-			resetCaret();
-			draw();
-		}
-	}
-
-	// Right arrow key
-	if(key === 39){
-		if(selectedObject && selectedObject.text){
-			if(++caretIndex > selectedObject.text.length)
-				caretIndex = selectedObject.text.length;
-
-			resetCaret();
-			draw();
-		}
-	}
 
 	if (e.ctrlKey) {
 		if (key == 90) // ctrl z
@@ -545,36 +477,6 @@ document.onkeyup = function(e) {
 	}
 
 	updateStates();
-};
-
-document.onkeypress = function(e) {
-	// don't read keystrokes when other things have focus
-	var key = crossBrowserKey(e);
-	if(!canvasHasFocus()) {
-		// don't read keystrokes when other things have focus
-		return true;
-	} else if(key >= 0x20 && key <= 0x7E && !e.metaKey && !e.altKey && !e.ctrlKey && selectedObject != null && 'text' in selectedObject) {
-		// Add the letter at the caret
-		var newText = selectedObject.text.substring(0, caretIndex) + String.fromCharCode(key) + selectedObject.text.substring(caretIndex);
-		caretIndex++;
-
-		// Parse for Latex short cuts and update the caret index appropriately 
-		var formattedText = convertLatexShortcuts(newText);
-		caretIndex -= newText.length - formattedText.length;
-
-		// Update the selected objects text
-		selectedObject.text = formattedText;
-
-		// Draw the new text
-		resetCaret();
-		draw();
-		
-		// don't let keys do their actions (like space scrolls down the page)
-		return false;
-	} else if(key == 8) {
-		// backspace is a shortcut for the back button, but do NOT want to change pages
-		return false;
-	}
 };
 
 function crossBrowserKey(e) {
@@ -615,45 +517,6 @@ function output(text) {
 	var element = document.getElementById('output');
 	element.style.display = 'block';
 	element.value = text;
-}
-
-function saveAsPNG() {
-	var oldSelectedObject = selectedObject;
-	selectedObject = null;
-	drawUsing(canvas.getContext('2d'));
-	selectedObject = oldSelectedObject;
-	var pngData = canvas.toDataURL('image/png');
-	var pngLink = document.getElementById("pngLink");
-	pngLink.download = "image.png";
-	pngLink.href = pngData.replace(/^data:image\/[^;]/, 'data:application/octet-stream');
-}
-
-function saveAsSVG() {
-	var exporter = new ExportAsSVG();
-	var oldSelectedObject = selectedObject;
-	selectedObject = null;
-	drawUsing(exporter);
-	selectedObject = oldSelectedObject;
-	var svgData = exporter.toSVG();
-	output(svgData);
-	// Chrome isn't ready for this yet, the 'Save As' menu item is disabled
-	// document.location.href = 'data:image/svg+xml;base64,' + btoa(svgData);
-}
-
-function saveAsLaTeX() {
-	var exporter = new ExportAsLaTeX();
-	var oldSelectedObject = selectedObject;
-	selectedObject = null;
-	drawUsing(exporter);
-	selectedObject = oldSelectedObject;
-	var texData = exporter.toLaTeX();
-	output(texData);
-}
-
-function saveAsJson() {
-	var jsonLink = document.getElementById("jsonLink");
-	jsonLink.download = "exportedToJson.json";
-	jsonLink.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(exportJson());
 }
 
 function setCanvasSize() {
