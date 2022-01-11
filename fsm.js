@@ -212,6 +212,7 @@ function mouseToCanvasCoords(mouseCoords) {
 
 function selectObject(x, y) {
 	let result = _old_selectObject(x, y);
+
 	if (result && window.ferris) {
 		if (result instanceof Node) {
 			window.ferris.editItem('node', result);
@@ -220,7 +221,17 @@ function selectObject(x, y) {
 		}
 	}
 
+	if (!result) {
+		// cancel changes to old item
+		window.ferris.commitEditItem(true);
+	}
+
 	return result;
+}
+
+function findObjectAtCoords(x, y) {
+	// just finds the object, doesn't select it
+	return _old_selectObject(x, y);
 }
 
 function _old_selectObject(x, y) {
@@ -276,11 +287,17 @@ window.onload = function() {
 	canvas.onmousedown = function(e) {
 		var mouse = crossBrowserRelativeMousePos(e);
 		var canvasCoords = mouseToCanvasCoords(mouse);
-		selectedObject = selectObject(canvasCoords.x, canvasCoords.y);
+		var tappedObject = findObjectAtCoords(canvasCoords.x, canvasCoords.y);
+		// don't change selectedObject on mousedown unless we click on something else
+		if (tappedObject == null) {
+			
+		} else {
+			selectedObject = selectObject(canvasCoords.x, canvasCoords.y);
+		}
 		movingObject = false;
 		originalClick = canvasCoords;
 
-		if(selectedObject != null) {
+		if(tappedObject != null) {
 			if(e.shiftKey && selectedObject instanceof Node) {
 				currentLink = new SelfLink(selectedObject, canvasCoords);
 			} else if (!selectedObject.intersectedLabel) {
@@ -438,6 +455,7 @@ document.onkeydown = function(e) {
 	} else if(key == 46) { // delete key
 		if(selectedObject != null) {
 			deleteItem(selectedObject);
+			updateStates();
 			selectedObject = null;
 			if (window.ferris) window.ferris.commitEditItem(true);
 			draw();
@@ -450,6 +468,7 @@ document.onkeydown = function(e) {
 		if(key == 68) {// command d
 			if(selectedObject != null) {
 				deleteItem(selectedObject);
+				updateStates();
 				selectedObject = null;
 				if (window.ferris) window.ferris.commitEditItem(true);
 				draw();
@@ -559,6 +578,7 @@ function getPreviousState() {
 	}
 
 	state = states[statesIndex];
+	if (window.ferris) window.ferris.commitEditItem(true);
 	importJson(state);
 	draw();
 }
@@ -572,7 +592,15 @@ function getNextState() {
 	}
 
 	state = states[statesIndex];
+	if (window.ferris) window.ferris.commitEditItem(true);
 	importJson(state);
+	draw();
+}
+
+function updateSelectedObject(input) {
+	selectedObject.text = input;
+	selectedObject = null;
+	updateStates();
 	draw();
 }
 
