@@ -267,6 +267,28 @@ window.onload = function() {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 
+	let mediaListener = window.matchMedia('(prefers-color-scheme: dark)');
+
+	if (mediaListener.matches) {
+		canvasBackground = '#111'; //'white';
+		canvasForeground = 'white'; //'black';
+		canvasSelected = '#00A4FB'; //'blue';
+	}
+
+	mediaListener.addEventListener('change', function(event) {
+		if (event.matches) { // dark mode
+			canvasBackground = '#111'; //'white';
+			canvasForeground = 'white'; //'black';
+			canvasSelected = '#00A4FB'; //'blue';
+		} else { // light mode
+			canvasBackground = 'white';
+			canvasForeground = 'black';
+			canvasSelected = 'blue';
+		}
+		console.log('trigger');
+		draw();
+	});
+
 	updateStates();
 	draw();
 
