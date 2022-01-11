@@ -290,7 +290,8 @@ window.onload = function() {
 		if(selectedObject == null) {
 			selectedObject = new Node(canvasCoords.x, canvasCoords.y);
 			nodes.push(selectedObject);
-			if (window.ferris) window.ferris.editItem(selectedObject, 'node');
+			if (window.ferris) window.ferris.editItem('node', selectedObject);
+			console.log('making new node now');
 			draw();
 		}
 
@@ -353,7 +354,7 @@ window.onload = function() {
 		if(currentLink != null) {
 			if(!(currentLink instanceof TemporaryLink)) {
 				selectedObject = currentLink;
-				if (window.ferris) window.ferris.editItem(currentLink, 'edge');
+				if (window.ferris) window.ferris.editItem('edge', currentLink);
 				links.push(currentLink);
 			}
 			currentLink = null;
@@ -395,6 +396,10 @@ document.onkeydown = function(e) {
 	if (key == 27) { // escape key
 		if(selectedObject != null) {
 			// don't save changes and cancel commit
+			if (selectedObject.text.length == 0) {
+				// also delete this object
+				deleteItem(selectedObject);
+			}
 			selectedObject = null;
 			if (window.ferris) window.ferris.commitEditItem(true);
 			draw();
