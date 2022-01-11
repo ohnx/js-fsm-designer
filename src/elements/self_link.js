@@ -53,12 +53,12 @@ SelfLink.prototype.getEndPointsAndCircle = function() {
 
 SelfLink.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
-	var needsUndoColor = false;
+	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == '#000000') {
+	if (this.errorText) {
+		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = 'red';
-		needsUndoColor = true;
 	}
 
 	// draw arc
@@ -72,8 +72,8 @@ SelfLink.prototype.draw = function(c) {
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
 
-	if (needsUndoColor) {
-		c.fillStyle = c.strokeStyle = 'black';
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
 	}
 };
 

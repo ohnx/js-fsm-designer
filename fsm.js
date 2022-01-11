@@ -171,9 +171,19 @@ var translateX = 0.5, translateY = 0.5; // translation factors
 // line widths
 var nodeLineWidth = 1, linkLineWidth = 1;
 
+var canvasBackground = 'white';
+var canvasForeground = 'black';
+var canvasSelected = 'blue';
+
+/* dark mode
+var canvasBackground = 'black'; //'white';
+var canvasForeground = 'white'; //'black';
+var canvasSelected = '#1F97FF'; //'blue';
+*/
+
 function drawUsing(c) {
 	c.beginPath();
-	c.fillStyle = "white";
+	c.fillStyle = canvasBackground;
 	c.rect(0, 0, canvas.width, canvas.height);
 	c.fill();
 	c.save();
@@ -182,17 +192,17 @@ function drawUsing(c) {
 
 	for(var i = 0; i < nodes.length; i++) {
 		c.lineWidth = nodeLineWidth;
-		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? 'blue' : 'black';
+		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? canvasSelected : canvasForeground;
 		nodes[i].draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = linkLineWidth;
-		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? 'blue' : 'black';
+		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? canvasSelected : canvasForeground;
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
 		c.lineWidth = linkLineWidth;
-		c.fillStyle = c.strokeStyle = 'black';
+		c.fillStyle = c.strokeStyle = canvasForeground;
 		currentLink.draw(c);
 	}
 
@@ -219,6 +229,20 @@ function mouseToCanvasCoords(mouseCoords) {
 }
 
 function selectObject(x, y) {
+	let result = _old_selectObject(x, y);
+	if (result && window.ferris) {
+		console.log(result);
+		if (result instanceof Node) {
+			window.ferris.editItem('node', result);
+		} else {
+			window.ferris.editItem('edge', result);
+		}
+	}
+
+	return result;
+}
+
+function _old_selectObject(x, y) {
 	for(var i = 0; i < nodes.length; i++) {
 		if(nodes[i].containsPoint(x, y)) {
 			return nodes[i];
@@ -1079,12 +1103,12 @@ SelfLink.prototype.getEndPointsAndCircle = function() {
 
 SelfLink.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
-	var needsUndoColor = false;
+	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == '#000000') {
+	if (this.errorText) {
+		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = 'red';
-		needsUndoColor = true;
 	}
 
 	// draw arc
@@ -1098,8 +1122,8 @@ SelfLink.prototype.draw = function(c) {
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, stuff.endAngle + Math.PI * 0.4);
 
-	if (needsUndoColor) {
-		c.fillStyle = c.strokeStyle = 'black';
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
 	}
 };
 
@@ -1205,13 +1229,13 @@ Link.prototype.getEndPointsAndCircle = function() {
 
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
-	var needsUndoColor = false;
+	var oldColor = null;
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText && c.fillStyle == '#000000') {
+	if (this.errorText) {
+		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = 'red';
-		needsUndoColor = true;
 	}
 
 	// draw arc
@@ -1247,8 +1271,8 @@ Link.prototype.draw = function(c) {
 		this.textBounds = drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
 	}
 
-	if (needsUndoColor) {
-		c.fillStyle = c.strokeStyle = 'black';
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
 	}
 };
 
@@ -1327,6 +1351,7 @@ function Node(x, y) {
 	this.mouseOffsetX = 0;
 	this.mouseOffsetY = 0;
 	this.text = '';
+	this.outputs = '';
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -1406,12 +1431,12 @@ StartLink.prototype.getEndPoints = function() {
 
 StartLink.prototype.draw = function(c) {
 	var stuff = this.getEndPoints();
-	var needsUndoColor = false;
+	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == '#000000') {
+	if (this.errorText) {
+		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = 'red';
-		needsUndoColor = true;
 	}
 
 	// draw the line
@@ -1427,8 +1452,8 @@ StartLink.prototype.draw = function(c) {
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
 
-	if (needsUndoColor) {
-		c.fillStyle = c.strokeStyle = 'black';
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
 	}
 };
 

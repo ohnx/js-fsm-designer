@@ -77,13 +77,13 @@ Link.prototype.getEndPointsAndCircle = function() {
 
 Link.prototype.draw = function(c) {
 	var stuff = this.getEndPointsAndCircle();
-	var needsUndoColor = false;
+	var oldColor = null;
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText && c.fillStyle == '#000000') {
+	if (this.errorText) {
+		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = 'red';
-		needsUndoColor = true;
 	}
 
 	// draw arc
@@ -119,8 +119,8 @@ Link.prototype.draw = function(c) {
 		this.textBounds = drawText(c, this.text, textX, textY, textAngle + this.lineAngleAdjust, selectedObject == this);
 	}
 
-	if (needsUndoColor) {
-		c.fillStyle = c.strokeStyle = 'black';
+	if (oldColor) {
+		c.fillStyle = c.strokeStyle = oldColor;
 	}
 };
 

@@ -143,9 +143,19 @@ var translateX = 0.5, translateY = 0.5; // translation factors
 // line widths
 var nodeLineWidth = 1, linkLineWidth = 1;
 
+var canvasBackground = 'white';
+var canvasForeground = 'black';
+var canvasSelected = 'blue';
+
+/* dark mode
+var canvasBackground = 'black'; //'white';
+var canvasForeground = 'white'; //'black';
+var canvasSelected = '#1F97FF'; //'blue';
+*/
+
 function drawUsing(c) {
 	c.beginPath();
-	c.fillStyle = "white";
+	c.fillStyle = canvasBackground;
 	c.rect(0, 0, canvas.width, canvas.height);
 	c.fill();
 	c.save();
@@ -154,17 +164,17 @@ function drawUsing(c) {
 
 	for(var i = 0; i < nodes.length; i++) {
 		c.lineWidth = nodeLineWidth;
-		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? 'blue' : 'black';
+		c.fillStyle = c.strokeStyle = (nodes[i] == selectedObject) ? canvasSelected : canvasForeground;
 		nodes[i].draw(c);
 	}
 	for(var i = 0; i < links.length; i++) {
 		c.lineWidth = linkLineWidth;
-		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? 'blue' : 'black';
+		c.fillStyle = c.strokeStyle = (links[i] == selectedObject) ? canvasSelected : canvasForeground;
 		links[i].draw(c);
 	}
 	if(currentLink != null) {
 		c.lineWidth = linkLineWidth;
-		c.fillStyle = c.strokeStyle = 'black';
+		c.fillStyle = c.strokeStyle = canvasForeground;
 		currentLink.draw(c);
 	}
 
@@ -191,6 +201,20 @@ function mouseToCanvasCoords(mouseCoords) {
 }
 
 function selectObject(x, y) {
+	let result = _old_selectObject(x, y);
+	if (result && window.ferris) {
+		console.log(result);
+		if (result instanceof Node) {
+			window.ferris.editItem('node', result);
+		} else {
+			window.ferris.editItem('edge', result);
+		}
+	}
+
+	return result;
+}
+
+function _old_selectObject(x, y) {
 	for(var i = 0; i < nodes.length; i++) {
 		if(nodes[i].containsPoint(x, y)) {
 			return nodes[i];
