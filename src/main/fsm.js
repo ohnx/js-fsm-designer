@@ -185,7 +185,6 @@ function mouseToCanvasCoords(mouseCoords) {
 function selectObject(x, y) {
 	let result = _old_selectObject(x, y);
 	if (result && window.ferris) {
-		console.log(result);
 		if (result instanceof Node) {
 			window.ferris.editItem('node', result);
 		} else {
@@ -291,7 +290,6 @@ window.onload = function() {
 			selectedObject = new Node(canvasCoords.x, canvasCoords.y);
 			nodes.push(selectedObject);
 			if (window.ferris) window.ferris.editItem('node', selectedObject);
-			console.log('making new node now');
 			draw();
 		}
 
@@ -403,6 +401,9 @@ document.onkeydown = function(e) {
 			selectedObject = null;
 			if (window.ferris) window.ferris.commitEditItem(true);
 			draw();
+		} else {
+			// close the sidebar
+			if (window.ferris) window.ferris.toggleShow(false);
 		}
 
 		e.preventDefault();
