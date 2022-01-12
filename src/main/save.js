@@ -71,12 +71,14 @@ function importJson(jsonString) {
 			}
 
 			if(link != null) {
-				if (backupLink.text) {
+				if (backupLink.type == 'StartLink') {
+					// skip any sort of text importing here
+				} else if (backupLink.text) {
 					let result = parseSlashedEdge(backupLink.text, true);
 					link.condition = result.condition;
 					link.outputs = result.output;
 					link.updateText();
-				} else if (backupLink.type != 'StartLink') {
+				} else {
 					link.condition = backupLink.condition;
 					link.outputs = backupLink.outputs;
 					link.updateText();
