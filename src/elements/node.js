@@ -6,7 +6,7 @@ function Node(x, y) {
 	this.text = '';
 	this.name = '';
 	this.outputs = [];
-	this.errorText = null;
+	this.errors = [];
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -22,7 +22,7 @@ Node.prototype.setAnchorPoint = function(x, y) {
 Node.prototype.draw = function(c) {
 	var oldColor = null;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}

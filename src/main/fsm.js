@@ -420,8 +420,10 @@ window.onload = function() {
 		e.preventDefault();
 		// only care about y scroll
 		currentScale += e.deltaY * -0.01;
-		if (currentScale <= 0.005) {
-			currentScale = 0.005;
+		if (currentScale <= 0.05) {
+			currentScale = 0.05;
+		} else if (currentScale >= 35) {
+			currentScale = 35;
 		}
 		draw();
 	};
@@ -617,4 +619,21 @@ function updateSelectedObject(name, condition, outputs) {
 	selectedObject = null;
 	updateStates();
 	draw();
+}
+
+function clearErrors() {
+	for(var i = 0; i < nodes.length; i++) {
+		nodes[i].errors = [];
+	}
+	for(var i = 0; i < links.length; i++) {
+		links[i].errors = [];
+	}
+}
+
+function addError(itemType, idx, data) {
+	if (itemType == 'link') {
+		links[idx].errors.push(data);
+	} else if (itemType == 'node') {
+		nodes[idx].errors.push(data);
+	}
 }

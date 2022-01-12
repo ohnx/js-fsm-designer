@@ -7,7 +7,7 @@ function SelfLink(node, mouse) {
 	this.outputs = [];
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = 'ahh'; //'ahhh';
+	this.errors = []; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -58,7 +58,7 @@ SelfLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}

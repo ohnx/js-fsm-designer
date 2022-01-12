@@ -448,8 +448,10 @@ window.onload = function() {
 		e.preventDefault();
 		// only care about y scroll
 		currentScale += e.deltaY * -0.01;
-		if (currentScale <= 0.005) {
-			currentScale = 0.005;
+		if (currentScale <= 0.05) {
+			currentScale = 0.05;
+		} else if (currentScale >= 35) {
+			currentScale = 35;
 		}
 		draw();
 	};
@@ -647,6 +649,47 @@ function updateSelectedObject(name, condition, outputs) {
 	draw();
 }
 
+function clearErrors() {
+	for(var i = 0; i < nodes.length; i++) {
+		nodes[i].errors = [];
+	}
+	for(var i = 0; i < links.length; i++) {
+		links[i].errors = [];
+	}
+}
+
+function addError(itemType, idx, data) {
+	if (itemType == 'link') {
+		links[idx].errors.push(data);
+	} else if (itemType == 'node') {
+		nodes[idx].errors.push(data);
+	}
+}
+
+// returns map of {condition: 'asdf', output: ['a1', 'a2']}
+// may return null if error occurred
+// if newOkay is passed, then it will not return null, but instead return empty
+// condition w/ no output
+function parseSlashedEdge(singlestr, newOkay) {
+	let res = {};
+
+	let condOut = singlestr.split('/');
+	if (condOut.length != 2) {
+		// TODO: error out here
+		if (newOkay) {
+			// new thing okay
+			return {condition: singlestr, output: []};
+		}
+		return null;
+	}
+
+	res.condition = condOut[0].split(' ').join('');
+	let outputVars = condOut[1].split(' ').join('');
+	res.output = outputVars.length > 0 ? outputVars.split(',') : [];
+
+	return res;
+}
+
 function importJson(jsonString) {
 	if(!JSON) {
 		return;
@@ -666,15 +709,16 @@ function importJson(jsonString) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y);
 			node.isAcceptState = backupNode.isAcceptState;
-			if (backupNode.name) {
+			if (backupNode.text) {
+				let result = parseSlashedEdge(backupNode.text, true);
+				node.name = result.condition;
+				node.outputs = result.output;
+			} else {
 				node.name = backupNode.name;
 				node.outputs = backupNode.outputs;
-				node.updateText();
-			} else {
-				// old format
-				// punt the updating of the format to ferris frontend
-				node.text = backupNode.text;
 			}
+
+			node.updateText();
 			nodes.push(node);
 		}
 		for(var i = 0; i < backup.links.length; i++) {
@@ -695,14 +739,15 @@ function importJson(jsonString) {
 			}
 
 			if(link != null) {
-				if (backupLink.condition) {
+				if (backupLink.text) {
+					let result = parseSlashedEdge(backupLink.text, true);
+					link.condition = result.condition;
+					link.outputs = result.output;
+					link.updateText();
+				} else if (backupLink.type != 'StartLink') {
 					link.condition = backupLink.condition;
 					link.outputs = backupLink.outputs;
 					link.updateText();
-				} else {
-					// old format
-					// punt the updating of the format to ferris frontend
-					link.text = backupLink.text;
 				}
 
 				links.push(link);
@@ -736,7 +781,6 @@ function exportJson(asObject) {
 		var backupNode = {
 			'x': node.x,
 			'y': node.y,
-			'text': node.text,
 			'name': node.name,
 			'outputs': node.outputs,
 			'isAcceptState': node.isAcceptState,
@@ -750,7 +794,6 @@ function exportJson(asObject) {
 			backupLink = {
 				'type': 'SelfLink',
 				'node': nodes.indexOf(link.node),
-				'text': link.text,
 				'condition': link.condition,
 				'outputs': link.outputs,
 				'anchorAngle': link.anchorAngle,
@@ -759,7 +802,6 @@ function exportJson(asObject) {
 			backupLink = {
 				'type': 'StartLink',
 				'node': nodes.indexOf(link.node),
-				'text': link.text,
 				'deltaX': link.deltaX,
 				'deltaY': link.deltaY,
 			};
@@ -768,7 +810,6 @@ function exportJson(asObject) {
 				'type': 'Link',
 				'nodeA': nodes.indexOf(link.nodeA),
 				'nodeB': nodes.indexOf(link.nodeB),
-				'text': link.text,
 				'condition': link.condition,
 				'outputs': link.outputs,
 				'lineAngleAdjust': link.lineAngleAdjust,
@@ -1020,7 +1061,7 @@ function SelfLink(node, mouse) {
 	this.outputs = [];
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = 'ahh'; //'ahhh';
+	this.errors = []; //'ahhh';
 
 	if(mouse) {
 		this.setAnchorPoint(mouse.x, mouse.y);
@@ -1071,7 +1112,7 @@ SelfLink.prototype.draw = function(c) {
 	var oldColor = null;
 	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
@@ -1128,7 +1169,7 @@ function Link(a, b) {
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = null;
+	this.errors = [];
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -1204,7 +1245,7 @@ Link.prototype.draw = function(c) {
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
@@ -1328,7 +1369,7 @@ function Node(x, y) {
 	this.text = '';
 	this.name = '';
 	this.outputs = [];
-	this.errorText = null;
+	this.errors = [];
 }
 
 Node.prototype.setMouseStart = function(x, y) {
@@ -1344,7 +1385,7 @@ Node.prototype.setAnchorPoint = function(x, y) {
 Node.prototype.draw = function(c) {
 	var oldColor = null;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
@@ -1386,10 +1427,8 @@ function StartLink(node, start) {
 	this.node = node;
 	this.deltaX = 0;
 	this.deltaY = 0;
-	this.text = '';
-	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = null;
+	this.errors = [];
 
 	if(start) {
 		this.setAnchorPoint(start.x, start.y);
@@ -1424,9 +1463,8 @@ StartLink.prototype.getEndPoints = function() {
 StartLink.prototype.draw = function(c) {
 	var stuff = this.getEndPoints();
 	var oldColor = null;
-	this.textBounds = null;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
@@ -1437,29 +1475,12 @@ StartLink.prototype.draw = function(c) {
 	c.lineTo(stuff.endX, stuff.endY);
 	c.stroke();
 
-	// draw the text at the end without the arrow
-	var textAngle = Math.atan2(stuff.startY - stuff.endY, stuff.startX - stuff.endX);
-	this.textBounds = drawText(c, this.text, stuff.startX, stuff.startY, textAngle, selectedObject == this);
-
 	// draw the head of the arrow
 	drawArrow(c, stuff.endX, stuff.endY, Math.atan2(-this.deltaY, -this.deltaX));
 
 	if (oldColor) {
 		c.fillStyle = c.strokeStyle = oldColor;
 	}
-};
-
-StartLink.prototype.labelContainsPoint = function(stuff, x, y) {
-	if (!this.textBounds) return;
-	if ((x >= this.textBounds.x - hitTargetPadding) &&
-		(x <= (this.textBounds.x + this.textBounds.w + hitTargetPadding))) {
-		if ((y >= this.textBounds.y - hitTargetPadding) &&
-			(y <= (this.textBounds.y + this.textBounds.h + hitTargetPadding))) {
-			this.intersectedLabel = true;
-			return true;
-		}
-	}
-	return false;
 };
 
 StartLink.prototype.containsPoint = function(x, y) {
@@ -1470,6 +1491,5 @@ StartLink.prototype.containsPoint = function(x, y) {
 	var length = Math.sqrt(dx*dx + dy*dy);
 	var percent = (dx * (x - stuff.startX) + dy * (y - stuff.startY)) / (length * length);
 	var distance = (dx * (y - stuff.startY) - dy * (x - stuff.startX)) / length;
-	return ((percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding)) ||
-			this.labelContainsPoint(stuff, x, y);
+	return ((percent > 0 && percent < 1 && Math.abs(distance) < hitTargetPadding));
 };

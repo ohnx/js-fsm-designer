@@ -1,3 +1,27 @@
+// returns map of {condition: 'asdf', output: ['a1', 'a2']}
+// may return null if error occurred
+// if newOkay is passed, then it will not return null, but instead return empty
+// condition w/ no output
+function parseSlashedEdge(singlestr, newOkay) {
+	let res = {};
+
+	let condOut = singlestr.split('/');
+	if (condOut.length != 2) {
+		// TODO: error out here
+		if (newOkay) {
+			// new thing okay
+			return {condition: singlestr, output: []};
+		}
+		return null;
+	}
+
+	res.condition = condOut[0].split(' ').join('');
+	let outputVars = condOut[1].split(' ').join('');
+	res.output = outputVars.length > 0 ? outputVars.split(',') : [];
+
+	return res;
+}
+
 function importJson(jsonString) {
 	if(!JSON) {
 		return;
@@ -17,15 +41,16 @@ function importJson(jsonString) {
 			var backupNode = backup.nodes[i];
 			var node = new Node(backupNode.x, backupNode.y);
 			node.isAcceptState = backupNode.isAcceptState;
-			if (backupNode.name) {
+			if (backupNode.text) {
+				let result = parseSlashedEdge(backupNode.text, true);
+				node.name = result.condition;
+				node.outputs = result.output;
+			} else {
 				node.name = backupNode.name;
 				node.outputs = backupNode.outputs;
-				node.updateText();
-			} else {
-				// old format
-				// punt the updating of the format to ferris frontend
-				node.text = backupNode.text;
 			}
+
+			node.updateText();
 			nodes.push(node);
 		}
 		for(var i = 0; i < backup.links.length; i++) {
@@ -46,14 +71,15 @@ function importJson(jsonString) {
 			}
 
 			if(link != null) {
-				if (backupLink.condition) {
+				if (backupLink.text) {
+					let result = parseSlashedEdge(backupLink.text, true);
+					link.condition = result.condition;
+					link.outputs = result.output;
+					link.updateText();
+				} else if (backupLink.type != 'StartLink') {
 					link.condition = backupLink.condition;
 					link.outputs = backupLink.outputs;
 					link.updateText();
-				} else {
-					// old format
-					// punt the updating of the format to ferris frontend
-					link.text = backupLink.text;
 				}
 
 				links.push(link);
@@ -87,7 +113,6 @@ function exportJson(asObject) {
 		var backupNode = {
 			'x': node.x,
 			'y': node.y,
-			'text': node.text,
 			'name': node.name,
 			'outputs': node.outputs,
 			'isAcceptState': node.isAcceptState,
@@ -101,7 +126,6 @@ function exportJson(asObject) {
 			backupLink = {
 				'type': 'SelfLink',
 				'node': nodes.indexOf(link.node),
-				'text': link.text,
 				'condition': link.condition,
 				'outputs': link.outputs,
 				'anchorAngle': link.anchorAngle,
@@ -110,7 +134,6 @@ function exportJson(asObject) {
 			backupLink = {
 				'type': 'StartLink',
 				'node': nodes.indexOf(link.node),
-				'text': link.text,
 				'deltaX': link.deltaX,
 				'deltaY': link.deltaY,
 			};
@@ -119,7 +142,6 @@ function exportJson(asObject) {
 				'type': 'Link',
 				'nodeA': nodes.indexOf(link.nodeA),
 				'nodeB': nodes.indexOf(link.nodeB),
-				'text': link.text,
 				'condition': link.condition,
 				'outputs': link.outputs,
 				'lineAngleAdjust': link.lineAngleAdjust,

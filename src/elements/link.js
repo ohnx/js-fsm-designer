@@ -7,7 +7,7 @@ function Link(a, b) {
 	this.lineAngleAdjust = 0; // value to add to textAngle when link is straight line
 	this.textBounds = null;
 	this.intersectedLabel = false;
-	this.errorText = null;
+	this.errors = [];
 
 	// make anchor point relative to the locations of nodeA and nodeB
 	this.parallelPart = 0.5; // percentage from nodeA to nodeB
@@ -83,7 +83,7 @@ Link.prototype.draw = function(c) {
 	this.textBounds = null;
 	this.intersectedLabel = false;
 
-	if (this.errorText && c.fillStyle == canvasForeground) {
+	if (this.errors.length > 0 && c.fillStyle == canvasForeground) {
 		oldColor = c.fillStyle;
 		c.fillStyle = c.strokeStyle = canvasWarning;
 	}
